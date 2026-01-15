@@ -11,6 +11,8 @@ A Rails engine that provides a secure, mountable web interface for running read-
 - 📝 **Audit Logging**: All queries logged with actor information
 - ⚡ **Resource Protection**: Configurable row limits and query timeouts
 - 💾 **Client-Side History**: Query history stored in browser localStorage
+- ⚡ **Hotwire-Powered**: Uses Turbo Frames and Stimulus for smooth, SPA-like experience
+- 🎨 **Zero Build Step**: CDN-hosted Hotwire, no asset compilation needed
 
 ## Security Features
 
@@ -44,6 +46,7 @@ rails generate query_console:install
 - Ruby 3.1+
 - Rails 7.0+
 - Works with Rails 8+
+- Hotwire (Turbo Rails + Stimulus) - automatically included
 
 ## Configuration
 
@@ -276,6 +279,48 @@ The test suite includes:
 - SQL limiter specs (result limiting)
 - Runner specs (integration tests)
 - Controller specs (authorization & routing)
+
+## Frontend Technology Stack
+
+QueryConsole uses **Hotwire (Turbo + Stimulus)**, the modern Rails-native frontend framework:
+
+### What's Included
+
+- **Turbo Frames**: Query results update without page reloads (SPA-like experience)
+- **Stimulus Controllers**: Organized JavaScript for collapsible sections, history, and editor
+- **CDN Delivery**: Hotwire loaded from CDN (no asset compilation needed)
+- **Zero Build Step**: No webpack, esbuild, or other bundlers required
+
+### Architecture
+
+```
+Frontend Stack
+├── HTML: ERB Templates
+├── CSS: Vanilla CSS (inline)
+├── JavaScript: 
+│   ├── Turbo Frames (results updates)
+│   └── Stimulus Controllers
+│       ├── collapsible_controller (section toggling)
+│       ├── history_controller (localStorage management)
+│       └── editor_controller (query execution)
+└── Storage: localStorage API
+```
+
+### Benefits
+
+✅ **No Build Step**: Works out of the box, no compilation needed  
+✅ **Rails-Native**: Standard Rails 7+ approach  
+✅ **Lightweight**: ~50KB total (vs React's 200KB+)  
+✅ **Fast**: No page reloads, instant interactions  
+✅ **Progressive**: Degrades gracefully without JavaScript  
+
+### Why Hotwire?
+
+1. **Rails Standard**: Default frontend stack for Rails 7+
+2. **Simple**: Fewer moving parts than SPA frameworks
+3. **Productive**: Write less JavaScript, more HTML
+4. **Modern**: All the benefits of SPAs without the complexity
+5. **Maintainable**: Standard Rails patterns throughout
 
 ## Troubleshooting
 
