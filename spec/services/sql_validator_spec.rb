@@ -87,7 +87,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('UPDATE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks DELETE queries' do
@@ -95,7 +95,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('DELETE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks INSERT queries' do
@@ -103,7 +103,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('INSERT')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks DROP queries' do
@@ -111,7 +111,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('DROP')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks ALTER queries' do
@@ -119,7 +119,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('ALTER')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks CREATE queries' do
@@ -127,7 +127,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('CREATE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks TRUNCATE queries' do
@@ -135,7 +135,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('TRUNCATE')
+        expect(result.error).to include('Query must start with one of')
       end
     end
 
@@ -231,7 +231,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('EXECUTE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks GRANT statements' do
@@ -239,7 +239,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('GRANT')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'blocks REVOKE statements' do
@@ -247,7 +247,7 @@ RSpec.describe QueryConsole::SqlValidator do
         result = validator.validate
 
         expect(result).to be_invalid
-        expect(result.error).to include('REVOKE')
+        expect(result.error).to include('Query must start with one of')
       end
     end
   end

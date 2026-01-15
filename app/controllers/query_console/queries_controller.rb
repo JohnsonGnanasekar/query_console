@@ -1,5 +1,7 @@
 module QueryConsole
   class QueriesController < ApplicationController
+    skip_forgery_protection only: [:run] # Allow Turbo Frame POST requests
+    
     def new
       # Render the main query editor page
     end

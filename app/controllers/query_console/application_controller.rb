@@ -15,7 +15,8 @@ module QueryConsole
       config = QueryConsole.configuration
       
       unless config.enabled_environments.map(&:to_s).include?(Rails.env.to_s)
-        raise ActionController::RoutingError, "Not Found"
+        render plain: "Not Found", status: :not_found
+        return false
       end
     end
 
@@ -25,13 +26,15 @@ module QueryConsole
       # Default deny if no authorize hook is configured
       if config.authorize.nil?
         Rails.logger.warn("[QueryConsole] Access denied: No authorization hook configured")
-        raise ActionController::RoutingError, "Not Found"
+        render plain: "Not Found", status: :not_found
+        return false
       end
 
       # Call the authorization hook
       unless config.authorize.call(self)
         Rails.logger.warn("[QueryConsole] Access denied by authorization hook")
-        raise ActionController::RoutingError, "Not Found"
+        render plain: "Not Found", status: :not_found
+        return false
       end
     end
   end

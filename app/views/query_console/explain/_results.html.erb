@@ -1,0 +1,89 @@
+<style>
+  .explain-container {
+    margin-top: 20px;
+  }
+
+  .explain-header {
+    background: #f8f9fa;
+    padding: 12px 16px;
+    border-radius: 4px 4px 0 0;
+    border: 1px solid #dee2e6;
+    border-bottom: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .explain-header h4 {
+    margin: 0;
+    font-size: 14px;
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .explain-metadata {
+    font-size: 12px;
+    color: #6c757d;
+  }
+
+  .explain-content {
+    background: #fff;
+    border: 1px solid #dee2e6;
+    border-radius: 0 0 4px 4px;
+    padding: 16px;
+    max-height: 400px;
+    overflow: auto;
+  }
+
+  .explain-plan {
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 13px;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+    background: #f8f9fa;
+    padding: 12px;
+    border-radius: 4px;
+    color: #212529;
+  }
+
+  .explain-error {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 12px 16px;
+    border-radius: 4px;
+    border: 1px solid #f5c6cb;
+  }
+
+  .explain-error-icon {
+    font-weight: bold;
+    margin-right: 8px;
+  }
+</style>
+
+<%= turbo_frame_tag "explain-results" do %>
+  <div class="explain-container">
+    <% if result.failure? %>
+      <div class="explain-error">
+        <span class="explain-error-icon">⚠</span>
+        <strong>EXPLAIN Error:</strong> <%= result.error %>
+      </div>
+    <% else %>
+      <div class="explain-header">
+        <h4>Query Execution Plan</h4>
+        <div class="explain-metadata">
+          Execution time: <strong><%= result.execution_time_ms %>ms</strong>
+        </div>
+      </div>
+      <div class="explain-content">
+        <% if result.plan_text.present? %>
+          <div class="explain-plan"><%= result.plan_text %></div>
+        <% else %>
+          <div style="color: #6c757d; text-align: center; padding: 20px;">
+            No execution plan available.
+          </div>
+        <% end %>
+      </div>
+    <% end %>
+  </div>
+<% end %>

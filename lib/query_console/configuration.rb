@@ -6,7 +6,15 @@ module QueryConsole
                   :authorize,
                   :current_actor,
                   :forbidden_keywords,
-                  :allowed_starts_with
+                  :allowed_starts_with,
+                  :enable_explain,
+                  :enable_explain_analyze,
+                  :schema_explorer,
+                  :schema_cache_seconds,
+                  :schema_table_denylist,
+                  :schema_allowlist,
+                  :enable_syntax_highlighting,
+                  :enable_autocomplete
 
     def initialize
       @enabled_environments = ["development"]
@@ -20,6 +28,16 @@ module QueryConsole
         shutdown backup restore transaction commit rollback
       ]
       @allowed_starts_with = %w[select with]
+      
+      # v0.2.0 additions
+      @enable_explain = true
+      @enable_explain_analyze = false # ANALYZE can be expensive, disabled by default
+      @schema_explorer = true
+      @schema_cache_seconds = 60
+      @schema_table_denylist = ["schema_migrations", "ar_internal_metadata"]
+      @schema_allowlist = [] # empty means all tables allowed (except denylist)
+      @enable_syntax_highlighting = true
+      @enable_autocomplete = true
     end
   end
 

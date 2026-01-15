@@ -1,16 +1,14 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Query Console</title>
+  <title>Query Console v0.2.0</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <%= csrf_meta_tags %>
   <meta name="turbo-refresh-method" content="morph">
   <meta name="turbo-refresh-scroll" content="preserve">
   
   <style>
-    * {
-      box-sizing: border-box;
-    }
+    * { box-sizing: border-box; }
     
     body {
       font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
@@ -21,10 +19,11 @@
     }
 
     .container {
-      max-width: 1400px;
+      max-width: 1600px;
       margin: 0 auto;
     }
 
+    /* Banner */
     .banner {
       background: #fff3cd;
       border: 1px solid #ffc107;
@@ -33,79 +32,51 @@
       margin-bottom: 20px;
       color: #856404;
       position: relative;
-      transition: all 0.3s ease;
     }
 
-    .banner.collapsed {
-      padding: 10px 15px;
-    }
-
-    .banner.collapsed .banner-content {
-      display: none;
-    }
-
-    .banner.collapsed h2 {
-      margin: 0;
-    }
-
+    .banner.collapsed .banner-content { display: none; }
     .banner h2 {
       margin: 0 0 10px 0;
       font-size: 18px;
       padding-right: 30px;
     }
-
     .banner p {
       margin: 5px 0;
       font-size: 14px;
     }
 
-    .banner-toggle {
+    .section-toggle {
       position: absolute;
-      top: 15px;
+      top: 50%;
       right: 15px;
+      transform: translateY(-50%);
       background: transparent;
       border: none;
-      color: #856404;
-      font-size: 20px;
       cursor: pointer;
-      padding: 0;
-      width: 24px;
-      height: 24px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      transition: transform 0.3s ease;
+      padding: 4px 8px;
+      font-size: 16px;
     }
 
-    .banner-toggle:hover {
-      transform: scale(1.2);
-    }
-
-    .banner.collapsed .banner-toggle {
-      transform: rotate(180deg);
-    }
-
+    /* Main Layout */
     .main-layout {
       display: grid;
-      grid-template-columns: 1fr 300px;
+      grid-template-columns: 1fr 400px;
       gap: 20px;
+      align-items: start;
     }
 
+    /* Editor Section */
     .editor-section {
       background: white;
       border-radius: 8px;
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      transition: all 0.3s ease;
+      min-width: 0; /* Allow grid to constrain this column */
+      width: 100%; /* Take full grid column width */
+      position: relative;
     }
-
-    .editor-section.collapsed {
-      padding: 15px 20px;
-    }
-
-    .editor-section.collapsed .editor-content {
-      display: none;
-    }
+    
+    .editor-section.collapsed .editor-content { display: none; }
 
     .editor-header {
       display: flex;
@@ -113,37 +84,12 @@
       align-items: center;
       margin-bottom: 15px;
       position: relative;
-    }
-
-    .editor-section.collapsed .editor-header {
-      margin-bottom: 0;
+      padding-right: 40px; /* Increased from 30px to give more space for toggle button */
     }
 
     .editor-header h3 {
       margin: 0;
-      font-size: 20px;
-      flex-grow: 1;
-    }
-
-    .section-toggle {
-      background: transparent;
-      border: none;
-      color: #6c757d;
-      font-size: 18px;
-      cursor: pointer;
-      padding: 5px 10px;
-      margin-left: 10px;
-      transition: transform 0.3s ease, color 0.2s;
-      order: 1;
-    }
-
-    .section-toggle:hover {
-      color: #007bff;
-      transform: scale(1.2);
-    }
-
-    .collapsed .section-toggle {
-      transform: rotate(180deg);
+      font-size: 16px;
     }
 
     .button-group {
@@ -151,13 +97,13 @@
       gap: 10px;
     }
 
-    .btn-primary, .btn-secondary, .btn-danger {
-      padding: 10px 20px;
+    .btn-primary, .btn-secondary {
+      padding: 8px 16px;
       border: none;
       border-radius: 4px;
-      font-size: 14px;
       cursor: pointer;
-      transition: all 0.2s;
+      font-size: 14px;
+      font-weight: 500;
     }
 
     .btn-primary {
@@ -165,13 +111,8 @@
       color: white;
     }
 
-    .btn-primary:hover:not(:disabled) {
+    .btn-primary:hover {
       background: #0056b3;
-    }
-
-    .btn-primary:disabled {
-      background: #6c757d;
-      cursor: not-allowed;
     }
 
     .btn-secondary {
@@ -183,191 +124,229 @@
       background: #545b62;
     }
 
-    .btn-danger {
-      background: #dc3545;
-      color: white;
-      font-size: 12px;
-      padding: 5px 10px;
-    }
-
-    .btn-danger:hover {
-      background: #c82333;
-    }
-
-    textarea {
+    /* SQL Editor Textarea */
+    .sql-editor {
       width: 100%;
       min-height: 200px;
-      padding: 15px;
+      padding: 12px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+      font-family: 'Monaco', 'Menlo', 'Courier New', monospace;
       font-size: 14px;
+      line-height: 1.5;
       resize: vertical;
-      margin-bottom: 15px;
     }
 
-    textarea:focus {
+    .sql-editor:focus {
       outline: none;
       border-color: #007bff;
-      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
+      box-shadow: 0 0 0 3px rgba(0, 123, 255, 0.1);
     }
 
-    .history-section {
+
+    /* Results Containers - prevent horizontal expansion */
+    turbo-frame#query-results,
+    turbo-frame#explain-results {
+      display: block;
+      width: 100%;
+      min-width: 0;
+      overflow-x: auto;
+    }
+
+    /* Right Panel */
+    .right-panel {
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+    }
+
+    /* Tabbed Section */
+    .tabbed-section {
       background: white;
       border-radius: 8px;
-      padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      max-height: 800px;
+      overflow: hidden;
+    }
+    
+    .tabbed-section.collapsed .tab-content { display: none; }
+
+    .tabs {
+      display: flex;
+      border-bottom: 1px solid #dee2e6;
+      background: #f8f9fa;
+    }
+
+    .tab {
+      padding: 12px 20px;
+      cursor: pointer;
+      border: none;
+      background: transparent;
+      border-bottom: 2px solid transparent;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .tab.active {
+      border-bottom-color: #007bff;
+      color: #007bff;
+    }
+
+    .tab-content {
+      padding: 15px;
+      max-height: 400px;
       overflow-y: auto;
-      transition: all 0.3s ease;
     }
 
-    .history-section.collapsed {
-      padding: 15px 20px;
-      max-height: none;
-      overflow: visible;
-    }
-
-    .history-section.collapsed .history-content {
+    .tab-pane {
       display: none;
     }
 
-    .history-header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-      position: relative;
+    .tab-pane.active {
+      display: block;
     }
 
-    .history-section.collapsed .history-header {
-      margin-bottom: 0;
-    }
-
-    .history-header h3 {
-      margin: 0;
-      font-size: 18px;
-      flex-grow: 1;
-    }
-
-    .history-list {
+    /* History & Schema Lists */
+    ul.item-list {
       list-style: none;
       padding: 0;
       margin: 0;
     }
 
-    .history-item {
+    ul.item-list li {
+      padding: 10px;
+      border-bottom: 1px solid #eee;
+      cursor: pointer;
+    }
+
+    ul.item-list li:hover {
+      background: #f8f9fa;
+    }
+
+    /* Saved Queries Section */
+    .saved-section {
+      background: white;
+      border-radius: 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      padding: 15px;
+    }
+
+    .saved-section.collapsed .saved-content {
+      display: none;
+    }
+
+    .saved-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
       margin-bottom: 10px;
     }
 
-    .history-item-button {
-      width: 100%;
-      background: #f8f9fa;
+    .saved-header h4 {
+      margin: 0;
+      font-size: 14px;
+    }
+
+    .saved-query-item {
+      padding: 10px;
       border: 1px solid #dee2e6;
       border-radius: 4px;
-      padding: 10px;
-      text-align: left;
+      margin-bottom: 8px;
+    }
+
+    .saved-query-item:hover {
+      background: #f8f9fa;
+    }
+
+    /* Schema Explorer */
+    .schema-search {
+      width: 100%;
+      padding: 8px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      margin-bottom: 10px;
+    }
+
+    .table-item {
+      padding: 8px;
       cursor: pointer;
-      transition: all 0.2s;
+      border-bottom: 1px solid #eee;
     }
 
-    .history-item-button:hover {
-      background: #e9ecef;
-      border-color: #007bff;
-      transform: translateX(2px);
+    .table-item:hover {
+      background: #f8f9fa;
     }
 
-    .history-item-sql {
-      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
-      font-size: 12px;
-      color: #495057;
-      margin-bottom: 5px;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
+    .columns-list {
+      margin-top: 10px;
+      padding-left: 15px;
     }
 
-    .history-item-time {
+    .column-item {
+      padding: 6px;
+      font-size: 13px;
+      border-left: 2px solid #007bff;
+      margin-bottom: 4px;
+      background: #f8f9fa;
+    }
+
+    /* Quick Actions */
+    .quick-actions {
+      display: flex;
+      gap: 6px;
+      margin-top: 6px;
+    }
+
+    .quick-action-btn {
+      padding: 4px 8px;
       font-size: 11px;
-      color: #6c757d;
+      background: #e9ecef;
+      border: 1px solid #dee2e6;
+      border-radius: 3px;
+      cursor: pointer;
     }
 
-    .empty-history {
-      color: #6c757d;
-      font-style: italic;
-      text-align: center;
-      padding: 20px;
+    .quick-action-btn:hover {
+      background: #dee2e6;
     }
 
-    @media (max-width: 768px) {
-      .main-layout {
-        grid-template-columns: 1fr;
-      }
+    /* Results */
+    .results-container {
+      margin-top: 20px;
+    }
+
+    .table-wrapper {
+      overflow: auto;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      max-height: 500px;
+    }
+
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    .results-table thead {
+      position: sticky;
+      top: 0;
+      background: #f8f9fa;
+      z-index: 10;
+    }
+
+    .results-table th,
+    .results-table td {
+      padding: 8px 12px;
+      text-align: left;
+      border: 1px solid #dee2e6;
+      white-space: nowrap;
+    }
+
+    .results-table th {
+      font-weight: 600;
+      background: #e9ecef;
     }
   </style>
-</head>
-<body>
-  <div class="container">
-    <!-- Security Banner - Collapsible -->
-    <div class="banner" id="security-banner" data-controller="collapsible" data-collapsible-key-value="banner">
-      <button class="banner-toggle" data-action="click->collapsible#toggle" title="Toggle banner">▼</button>
-      <h2>🔍 Read-Only SQL Query Console</h2>
-      <div class="banner-content">
-        <p><strong>Security Notice:</strong> This console is enabled only in development by default.</p>
-        <p>All queries are logged and restricted to read-only operations (SELECT statements only).</p>
-        <p>Multiple statements and write operations are blocked for security.</p>
-      </div>
-    </div>
 
-    <div class="main-layout">
-      <!-- SQL Editor Section - Collapsible -->
-      <%= form_with url: query_console.run_path, method: :post, data: { 
-        turbo_frame: "query-results",
-        controller: "editor",
-        action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess submit->editor#handleSubmit"
-      } do |f| %>
-        <div class="editor-section" id="editor-section" data-controller="collapsible" data-collapsible-key-value="editor">
-          <div class="editor-header">
-            <h3>SQL Editor</h3>
-            <div class="button-group">
-              <button type="button" data-action="click->editor#clear" data-editor-target="clearButton" class="btn-secondary">Clear</button>
-              <%= f.submit "Run Query", class: "btn-primary", data: { editor_target: "runButton" } %>
-            </div>
-            <button type="button" class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor">▼</button>
-          </div>
-
-          <div class="editor-content">
-            <%= f.text_area :sql, 
-              placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
-              data: { editor_target: "textarea" } %>
-
-            <!-- Turbo Frame for Results -->
-            <%= turbo_frame_tag "query-results", data: { editor_target: "results" } do %>
-              <div style="color: #6c757d; text-align: center; padding: 40px;">
-                <p>Enter a query above and click "Run Query" to see results here.</p>
-              </div>
-            <% end %>
-          </div>
-        </div>
-      <% end %>
-
-      <!-- Query History Section - Collapsible -->
-      <div class="history-section" id="history-section" data-controller="history collapsible" data-collapsible-key-value="history_section">
-        <div class="history-header">
-          <h3>Query History</h3>
-          <button data-action="click->history#clear" class="btn-danger">Clear</button>
-          <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle history">▼</button>
-        </div>
-        <div class="history-content">
-          <ul class="history-list" data-history-target="list">
-            <li class="empty-history">No query history yet</li>
-          </ul>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <!-- Load Hotwire and Stimulus from CDN -->
   <script type="importmap">
     {
       "imports": {
@@ -377,45 +356,281 @@
     }
   </script>
 
-  <!-- Load Stimulus controllers inline -->
   <script type="module">
     import * as Turbo from "@hotwired/turbo-rails"
     import { Application, Controller } from "@hotwired/stimulus"
-    
-    // Make Turbo available globally
-    window.Turbo = Turbo
-    
+
     const application = Application.start()
-    window.Stimulus = application
-    
+
     // Collapsible Controller
     class CollapsibleController extends Controller {
       static values = { key: String }
       
       connect() {
-        this.storageKey = `query_console.${this.keyValue}_collapsed`
         this.loadState()
       }
       
-      toggle(event) {
-        event.preventDefault()
+      toggle() {
         this.element.classList.toggle('collapsed')
-        
-        const isCollapsed = this.element.classList.contains('collapsed')
-        localStorage.setItem(this.storageKey, isCollapsed ? 'true' : 'false')
-        event.target.textContent = isCollapsed ? '▲' : '▼'
+        this.saveState()
       }
       
       loadState() {
-        const isCollapsed = localStorage.getItem(this.storageKey) === 'true'
-        if (isCollapsed) {
+        const key = this.keyValue
+        const collapsed = localStorage.getItem(`qc.collapsed.${key}`) === 'true'
+        if (collapsed) {
           this.element.classList.add('collapsed')
-          const button = this.element.querySelector('.section-toggle, .banner-toggle')
-          if (button) button.textContent = '▲'
         }
       }
+      
+      saveState() {
+        const key = this.keyValue
+        const collapsed = this.element.classList.contains('collapsed')
+        localStorage.setItem(`qc.collapsed.${key}`, collapsed)
+      }
     }
-    
+    application.register("collapsible", CollapsibleController)
+
+    // Tabs Controller
+    class TabsController extends Controller {
+      static targets = ["tab", "pane"]
+      
+      connect() {
+        this.showTab(0)
+      }
+      
+      select(event) {
+        const index = this.tabTargets.indexOf(event.currentTarget)
+        this.showTab(index)
+      }
+      
+      showTab(index) {
+        this.tabTargets.forEach((tab, i) => {
+          tab.classList.toggle('active', i === index)
+        })
+        this.paneTargets.forEach((pane, i) => {
+          pane.classList.toggle('active', i === index)
+        })
+      }
+    }
+    application.register("tabs", TabsController)
+
+    // Editor Controller (Simple Textarea)
+    class EditorController extends Controller {
+      static targets = ["textarea"]
+      
+      getSql() {
+        return this.textareaTarget.value
+      }
+      
+      setSql(text) {
+        this.textareaTarget.value = text
+        this.textareaTarget.focus()
+      }
+      
+      insertAtCursor(text) {
+        const textarea = this.textareaTarget
+        const start = textarea.selectionStart
+        const end = textarea.selectionEnd
+        const before = textarea.value.substring(0, start)
+        const after = textarea.value.substring(end)
+        
+        textarea.value = before + text + after
+        textarea.selectionStart = textarea.selectionEnd = start + text.length
+        textarea.focus()
+      }
+      
+      clearEditor() {
+        this.textareaTarget.value = ''
+        this.textareaTarget.focus()
+        
+        // Clear query results
+        const queryFrame = document.querySelector('turbo-frame#query-results')
+        if (queryFrame) {
+          queryFrame.innerHTML = '<div style="color: #6c757d; text-align: center; padding: 40px; margin-top: 20px;"><p>Enter a query above and click "Run Query" to see results here.</p></div>'
+        }
+        
+        // Clear explain results
+        const explainFrame = document.querySelector('turbo-frame#explain-results')
+        if (explainFrame) {
+          explainFrame.innerHTML = ''
+        }
+      }
+      
+      runQuery() {
+        const sql = this.getSql()
+        if (!sql.trim()) {
+          alert('Please enter a SQL query')
+          return
+        }
+        
+        // Clear explain results when running query
+        const explainFrame = document.querySelector('turbo-frame#explain-results')
+        if (explainFrame) {
+          explainFrame.innerHTML = ''
+        }
+        
+        // Store for history
+        window._lastExecutedSQL = sql
+        
+        // Create form with Turbo Frame target
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = '<%= query_console.run_path %>'
+        form.setAttribute('data-turbo-frame', 'query-results')
+        form.innerHTML = `
+          <input type="hidden" name="sql" value="${sql.replace(/"/g, '&quot;')}">
+          <input type="hidden" name="authenticity_token" value="${document.querySelector('meta[name=csrf-token]').content}">
+        `
+        document.body.appendChild(form)
+        form.requestSubmit()
+        document.body.removeChild(form)
+      }
+      
+      explainQuery() {
+        const sql = this.getSql()
+        if (!sql.trim()) {
+          alert('Please enter a SQL query')
+          return
+        }
+        
+        // Clear query results when running explain
+        const queryFrame = document.querySelector('turbo-frame#query-results')
+        if (queryFrame) {
+          queryFrame.innerHTML = ''
+        }
+        
+        // Create form with Turbo Frame target
+        const form = document.createElement('form')
+        form.method = 'POST'
+        form.action = '<%= query_console.explain_path %>'
+        form.setAttribute('data-turbo-frame', 'explain-results')
+        form.innerHTML = `
+          <input type="hidden" name="sql" value="${sql.replace(/"/g, '&quot;')}">
+          <input type="hidden" name="authenticity_token" value="${document.querySelector('meta[name=csrf-token]').content}">
+        `
+        document.body.appendChild(form)
+        form.requestSubmit()
+        document.body.removeChild(form)
+      }
+    }
+    application.register("editor", EditorController)
+
+    // Schema Controller
+    class SchemaController extends Controller {
+      static targets = ["search", "tablesList", "details"]
+      
+      connect() {
+        this.loadTables()
+      }
+      
+      async loadTables() {
+        try {
+          const response = await fetch('<%= query_console.schema_tables_path %>')
+          this.tables = await response.json()
+          this.renderTables()
+        } catch (error) {
+          console.error('Failed to load tables:', error)
+        }
+      }
+      
+      filterTables(event) {
+        const query = event.target.value.toLowerCase()
+        this.renderTables(query)
+      }
+      
+      renderTables(filter = '') {
+        const filtered = filter ? 
+          this.tables.filter(t => t.name.toLowerCase().includes(filter)) : 
+          this.tables
+        
+        this.tablesListTarget.innerHTML = filtered.map(table => 
+          `<div class="table-item" data-action="click->schema#selectTable" data-table-name="${table.name}">
+            📊 ${table.name} <small>(${table.kind})</small>
+          </div>`
+        ).join('')
+      }
+      
+      async selectTable(event) {
+        const tableName = event.currentTarget.dataset.tableName
+        
+        try {
+          const response = await fetch(`<%= query_console.schema_tables_path %>/${tableName}`)
+          const tableData = await response.json()
+          this.renderTableDetails(tableData)
+        } catch (error) {
+          console.error('Failed to load table details:', error)
+        }
+      }
+      
+      renderTableDetails(table) {
+        const editor = this.application.getControllerForElementAndIdentifier(
+          document.querySelector('[data-controller="editor"]'),
+          'editor'
+        )
+        
+        this.detailsTarget.innerHTML = `
+          <h5>${table.name}</h5>
+          <div class="quick-actions">
+            <button class="quick-action-btn" data-action="click->schema#insertSelectAll" data-table="${table.name}">
+              SELECT * FROM ${table.name}
+            </button>
+            <button class="quick-action-btn" data-action="click->schema#copyTableName" data-table="${table.name}">
+              📋 Copy Table Name
+            </button>
+          </div>
+          <div class="columns-list">
+            ${table.columns.map(col => `
+              <div class="column-item">
+                <strong>${col.name}</strong> <code>${col.db_type}</code>
+                ${col.nullable ? '<span>NULL</span>' : '<span>NOT NULL</span>'}
+                <div class="quick-actions">
+                  <button class="quick-action-btn" data-action="click->schema#insertColumn" data-column="${col.name}">
+                    Insert
+                  </button>
+                  <button class="quick-action-btn" data-action="click->schema#insertWhere" data-column="${col.name}">
+                    WHERE
+                  </button>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+        `
+      }
+      
+      insertSelectAll(event) {
+        const table = event.currentTarget.dataset.table
+        const editor = this.getEditor()
+        editor.setSql(`SELECT * FROM ${table} LIMIT 100;`)
+      }
+      
+      insertColumn(event) {
+        const column = event.currentTarget.dataset.column
+        const editor = this.getEditor()
+        editor.insertAtCursor(column)
+      }
+      
+      insertWhere(event) {
+        const column = event.currentTarget.dataset.column
+        const editor = this.getEditor()
+        editor.insertAtCursor(`WHERE ${column} = `)
+      }
+      
+      copyTableName(event) {
+        const table = event.currentTarget.dataset.table
+        navigator.clipboard.writeText(table)
+        alert(`Copied: ${table}`)
+      }
+      
+      getEditor() {
+        return this.application.getControllerForElementAndIdentifier(
+          document.querySelector('[data-controller~="editor"]'),
+          'editor'
+        )
+      }
+    }
+    application.register("schema", SchemaController)
+
     // History Controller
     class HistoryController extends Controller {
       static targets = ["list"]
@@ -425,38 +640,60 @@
       }
       
       connect() {
-        this.loadHistory()
-        document.addEventListener('editor:executed', (e) => this.add(e))
+        this.render()
+        document.addEventListener('editor:executed', (e) => this.addQuery(e.detail.sql))
       }
       
-      add(event) {
+      addQuery(sql) {
         const history = this.getHistory()
         history.unshift({
-          sql: event.detail.sql.trim(),
-          timestamp: event.detail.timestamp
+          sql: sql,
+          timestamp: new Date().toISOString()
         })
         
-        const trimmed = history.slice(0, this.maxItemsValue)
-        localStorage.setItem(this.storageKeyValue, JSON.stringify(trimmed))
-        this.renderHistory(trimmed)
+        if (history.length > this.maxItemsValue) {
+          history.pop()
+        }
+        
+        this.saveHistory(history)
+        this.render()
+      }
+      
+      render() {
+        const history = this.getHistory()
+        this.listTarget.innerHTML = history.length ? 
+          history.map((item, index) => `
+            <li data-action="click->history#load" data-index="${index}">
+              <div style="font-size: 12px; color: #6c757d;">${new Date(item.timestamp).toLocaleString()}</div>
+              <div style="font-size: 13px; margin-top: 4px;">${this.truncate(item.sql, 100)}</div>
+            </li>
+          `).join('') :
+          '<li style="color: #6c757d; text-align: center; padding: 20px;">No query history</li>'
       }
       
       load(event) {
-        event.preventDefault()
-        const sql = event.currentTarget.dataset.sql
-        document.dispatchEvent(new CustomEvent('history:load', { detail: { sql } }))
-      }
-      
-      clear(event) {
-        event.preventDefault()
-        if (confirm("Clear all query history?")) {
-          localStorage.removeItem(this.storageKeyValue)
-          this.renderHistory([])
+        const index = parseInt(event.currentTarget.dataset.index)
+        const history = this.getHistory()
+        const query = history[index]
+        
+        if (query) {
+          const editor = this.getEditor()
+          editor.setSql(query.sql)
         }
       }
       
-      loadHistory() {
-        this.renderHistory(this.getHistory())
+      getEditor() {
+        return this.application.getControllerForElementAndIdentifier(
+          document.querySelector('[data-controller~="editor"]'),
+          'editor'
+        )
+      }
+      
+      clear() {
+        if (confirm('Clear all query history?')) {
+          localStorage.removeItem(this.storageKeyValue)
+          this.render()
+        }
       }
       
       getHistory() {
@@ -464,102 +701,257 @@
         return stored ? JSON.parse(stored) : []
       }
       
-      renderHistory(history) {
-        if (history.length === 0) {
-          this.listTarget.innerHTML = '<li class="empty-history">No query history yet</li>'
-          return
-        }
-        
-        this.listTarget.innerHTML = history.map(item => `
-          <li class="history-item">
-            <button type="button" class="history-item-button" 
-              data-action="click->history#load"
-              data-sql="${this.escapeHtml(item.sql)}">
-              <div class="history-item-sql">${this.escapeHtml(this.truncate(item.sql, 100))}</div>
-              <div class="history-item-time">${this.formatTime(item.timestamp)}</div>
-            </button>
-          </li>
-        `).join('')
+      saveHistory(history) {
+        localStorage.setItem(this.storageKeyValue, JSON.stringify(history))
       }
       
       truncate(str, length) {
         return str.length > length ? str.substring(0, length) + '...' : str
       }
-      
-      formatTime(timestamp) {
-        const date = new Date(timestamp)
-        const diff = Date.now() - date
-        if (diff < 60000) return 'just now'
-        if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`
-        if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`
-        return date.toLocaleDateString()
-      }
-      
-      escapeHtml(text) {
-        const div = document.createElement('div')
-        div.textContent = text
-        return div.innerHTML
-      }
     }
-    
-    // Editor Controller
-    class EditorController extends Controller {
-      static targets = ["textarea", "runButton"]
+    application.register("history", HistoryController)
+
+    // Saved Queries Controller
+    class SavedController extends Controller {
+      static targets = ["list"]
+      static values = {
+        storageKey: { type: String, default: "query_console.saved.v1" }
+      }
       
       connect() {
-        document.addEventListener('history:load', (e) => this.loadQuery(e.detail.sql))
+        this.render()
       }
       
-      loadQuery(sql) {
-        this.textareaTarget.value = sql
-        this.textareaTarget.focus()
-        this.element.scrollIntoView({ behavior: 'smooth' })
-      }
-      
-      clear(event) {
-        event.preventDefault()
-        this.textareaTarget.value = ''
-        this.textareaTarget.focus()
-      }
-      
-      handleSubmit(event) {
-        const sql = this.textareaTarget.value.trim()
+      save() {
+        const editor = this.getEditor()
+        const sql = editor.getSql()
         
-        if (!sql) {
-          event.preventDefault()
-          alert('Please enter a SQL query')
+        if (!sql.trim()) {
+          alert('Nothing to save')
           return
         }
         
-        // Store SQL for after execution
-        window._lastExecutedSQL = sql
+        const name = prompt('Query name:')
+        if (!name) return
         
-        // Show loading state
-        this.runButtonTarget.disabled = true
-        this.runButtonTarget.value = 'Running...'
+        const tags = prompt('Tags (comma-separated, optional):')
         
-        // Let form submit naturally (Turbo will intercept it)
+        const saved = this.getSaved()
+        saved.push({
+          id: Date.now().toString(),
+          name: name,
+          tags: tags ? tags.split(',').map(t => t.trim()) : [],
+          sql: sql,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        })
+        
+        this.saveSaved(saved)
+        this.render()
       }
       
-      querySuccess() {
-        this.runButtonTarget.disabled = false
-        this.runButtonTarget.value = 'Run Query'
+      load(event) {
+        const id = event.currentTarget.dataset.id
+        const saved = this.getSaved()
+        const query = saved.find(q => q.id === id)
         
-        if (window._lastExecutedSQL) {
-          document.dispatchEvent(new CustomEvent('editor:executed', {
-            detail: {
-              sql: window._lastExecutedSQL,
-              timestamp: new Date().toISOString()
-            }
-          }))
-          delete window._lastExecutedSQL
+        if (query) {
+          const editor = this.getEditor()
+          editor.setSql(query.sql)
         }
       }
+      
+      delete(event) {
+        if (!confirm('Delete this saved query?')) return
+        
+        const id = event.currentTarget.dataset.id
+        const saved = this.getSaved().filter(q => q.id !== id)
+        this.saveSaved(saved)
+        this.render()
+      }
+      
+      exportJSON() {
+        const saved = this.getSaved()
+        const json = JSON.stringify(saved, null, 2)
+        navigator.clipboard.writeText(json)
+        alert('Saved queries copied to clipboard!')
+      }
+      
+      importJSON() {
+        const json = prompt('Paste saved queries JSON:')
+        if (!json) return
+        
+        try {
+          const imported = JSON.parse(json)
+          const saved = this.getSaved()
+          this.saveSaved([...saved, ...imported])
+          this.render()
+          alert(`Imported ${imported.length} queries`)
+        } catch (error) {
+          alert('Invalid JSON: ' + error.message)
+        }
+      }
+      
+      render() {
+        const saved = this.getSaved()
+        this.listTarget.innerHTML = saved.length ?
+          saved.map(query => `
+            <div class="saved-query-item">
+              <strong>${query.name}</strong>
+              ${query.tags.length ? `<div><small>🏷 ${query.tags.join(', ')}</small></div>` : ''}
+              <div style="font-size: 12px; color: #6c757d; margin: 4px 0;">
+                ${new Date(query.updatedAt).toLocaleString()}
+              </div>
+              <div class="quick-actions">
+                <button class="quick-action-btn" data-action="click->saved#load" data-id="${query.id}">Load</button>
+                <button class="quick-action-btn" data-action="click->saved#delete" data-id="${query.id}">Delete</button>
+              </div>
+            </div>
+          `).join('') :
+          '<div style="color: #6c757d; text-align: center; padding: 20px;">No saved queries</div>'
+      }
+      
+      getSaved() {
+        const stored = localStorage.getItem(this.storageKeyValue)
+        return stored ? JSON.parse(stored) : []
+      }
+      
+      saveSaved(saved) {
+        localStorage.setItem(this.storageKeyValue, JSON.stringify(saved))
+      }
+      
+      getEditor() {
+        return this.application.getControllerForElementAndIdentifier(
+          document.querySelector('[data-controller~="editor"]'),
+          'editor'
+        )
+      }
     }
-    
-    application.register("collapsible", CollapsibleController)
-    application.register("history", HistoryController)
-    application.register("editor", EditorController)
+    application.register("saved", SavedController)
+  </script>
+</head>
+<body>
+  <div class="container">
+    <!-- Banner -->
+    <div class="banner" data-controller="collapsible" data-collapsible-key-value="banner">
+      <h2>🔍 Read-Only SQL Query Console <small>v0.2.0</small></h2>
+      <div class="banner-content">
+        <p><strong>Security:</strong> Read-only SELECT & WITH queries only. All queries are logged.</p>
+        <p><strong>New in v0.2.0:</strong> EXPLAIN query plans, Interactive Schema Explorer with quick insert buttons, Saved Queries with tags, import/export, and localStorage-based Query History!</p>
+      </div>
+      <button class="section-toggle" data-action="click->collapsible#toggle" type="button">▼</button>
+    </div>
+
+    <div class="main-layout">
+      <!-- Editor Section -->
+      <div class="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor_section">
+        <div class="editor-header">
+          <h3>SQL Editor</h3>
+          <div class="button-group">
+            <button class="btn-secondary" data-action="click->editor#clearEditor" type="button">Clear</button>
+            <button class="btn-secondary" data-action="click->editor#explainQuery" type="button">⚡ Explain</button>
+            <button class="btn-primary" data-action="click->editor#runQuery" type="button">▶ Run Query</button>
+          </div>
+          <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor" type="button">▼</button>
+        </div>
+
+        <div class="editor-content" data-collapsible-target="content">
+        <!-- SQL Editor -->
+        <textarea
+          data-editor-target="textarea"
+          class="sql-editor"
+          placeholder="Enter your SELECT or WITH query here...
+
+Examples:
+  SELECT * FROM users LIMIT 10;
+  SELECT id, name, email FROM users WHERE active = true;
+  
+Use the Schema Explorer to discover tables and columns!">SELECT * FROM users LIMIT 10;</textarea>
+
+        <!-- Results Area -->
+        <%= turbo_frame_tag "query-results" do %>
+          <div style="color: #6c757d; text-align: center; padding: 40px; margin-top: 20px;">
+            <p>Enter a query above and click "Run Query" to see results here.</p>
+          </div>
+        <% end %>
+
+        <!-- Explain Results Area -->
+        <%= turbo_frame_tag "explain-results" do %>
+        <% end %>
+        </div>
+      </div>
+
+      <!-- Right Panel -->
+      <div class="right-panel">
+        <!-- Tabbed Section (History / Schema / Saved Queries) -->
+        <div class="tabbed-section" data-controller="tabs collapsible" data-collapsible-key-value="tabs_section">
+          <div class="tabs" style="position: relative;">
+            <button class="tab" data-tabs-target="tab" data-action="click->tabs#select" type="button">📜 History</button>
+            <button class="tab" data-tabs-target="tab" data-action="click->tabs#select" type="button">📊 Schema</button>
+            <button class="tab" data-tabs-target="tab" data-action="click->tabs#select" type="button">💾 Saved</button>
+            <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle tabs" type="button" style="position: absolute; right: 10px; top: 50%; transform: translateY(-50%); background: transparent; border: none; cursor: pointer; padding: 4px 8px; font-size: 14px;">▼</button>
+          </div>
+
+          <div class="tab-content" data-collapsible-target="content">
+            <!-- History Tab -->
+            <div class="tab-pane" data-tabs-target="pane">
+              <div data-controller="history">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <h4 style="margin: 0; font-size: 14px;">Recent Queries</h4>
+                  <button class="quick-action-btn" data-action="click->history#clear" type="button">Clear</button>
+                </div>
+                <ul class="item-list" data-history-target="list"></ul>
+              </div>
+            </div>
+
+            <!-- Schema Tab -->
+            <div class="tab-pane" data-tabs-target="pane">
+              <div data-controller="schema">
+                <input 
+                  type="text" 
+                  class="schema-search" 
+                  placeholder="🔍 Search tables..."
+                  data-schema-target="search"
+                  data-action="input->schema#filterTables">
+                <div data-schema-target="tablesList"></div>
+                <div data-schema-target="details" style="margin-top: 15px;"></div>
+              </div>
+            </div>
+
+            <!-- Saved Queries Tab -->
+            <div class="tab-pane" data-tabs-target="pane">
+              <div data-controller="saved">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                  <h4 style="margin: 0; font-size: 14px;">Saved Queries</h4>
+                  <div style="display: flex; gap: 5px;">
+                    <button class="quick-action-btn" data-action="click->saved#save" type="button">💾 Save</button>
+                    <button class="quick-action-btn" data-action="click->saved#exportJSON" type="button">📤 Export</button>
+                    <button class="quick-action-btn" data-action="click->saved#importJSON" type="button">📥 Import</button>
+                  </div>
+                </div>
+                <div data-saved-target="list"></div>
+              </div>
+            </div>
+          </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // Track query execution for history
+    document.addEventListener('turbo:submit-end', (event) => {
+      if (window._lastExecutedSQL) {
+        document.dispatchEvent(new CustomEvent('editor:executed', {
+          detail: {
+            sql: window._lastExecutedSQL,
+            timestamp: new Date().toISOString()
+          }
+        }))
+        delete window._lastExecutedSQL
+      }
+    })
   </script>
 </body>
 </html>

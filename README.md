@@ -4,6 +4,7 @@ A Rails engine that provides a secure, mountable web interface for running read-
 
 ## Features
 
+### Core Features (v0.1.0)
 - 🔒 **Security First**: Read-only queries enforced at multiple levels
 - 🚦 **Environment Gating**: Disabled by default in production
 - 🔑 **Flexible Authorization**: Integrate with your existing auth system
@@ -13,6 +14,13 @@ A Rails engine that provides a secure, mountable web interface for running read-
 - 💾 **Client-Side History**: Query history stored in browser localStorage
 - ⚡ **Hotwire-Powered**: Uses Turbo Frames and Stimulus for smooth, SPA-like experience
 - 🎨 **Zero Build Step**: CDN-hosted Hotwire, no asset compilation needed
+
+### New in v0.2.0 🚀
+- 📊 **EXPLAIN Query Plans**: Analyze query execution plans for performance debugging
+- 🗂️ **Schema Explorer**: Browse tables, columns, types with quick actions
+- 💾 **Saved Queries**: Save, organize, import/export your important queries (client-side)
+- 🎨 **Tabbed UI**: Switch between History and Schema views seamlessly
+- 🔍 **Quick Actions**: Generate queries from schema, copy names, insert WHERE clauses
 
 ## Security Features
 
@@ -70,6 +78,17 @@ QueryConsole.configure do |config|
   # Optional: Adjust limits
   # config.max_rows = 1000
   # config.timeout_ms = 5000
+  
+  # v0.2.0+ Features
+  # EXPLAIN feature (default: enabled)
+  # config.enable_explain = true
+  # config.enable_explain_analyze = false  # Disabled by default for safety
+  
+  # Schema Explorer (default: enabled)
+  # config.schema_explorer = true
+  # config.schema_cache_seconds = 60
+  # config.schema_table_denylist = ["schema_migrations", "ar_internal_metadata"]
+  # config.schema_allowlist = []  # Optional: whitelist specific tables
 end
 ```
 

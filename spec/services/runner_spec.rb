@@ -84,7 +84,7 @@ RSpec.describe QueryConsole::Runner do
         result = runner.execute
 
         expect(result).to be_failure
-        expect(result.error).to include('UPDATE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'returns error for DELETE queries' do
@@ -92,7 +92,7 @@ RSpec.describe QueryConsole::Runner do
         result = runner.execute
 
         expect(result).to be_failure
-        expect(result.error).to include('DELETE')
+        expect(result.error).to include('Query must start with one of')
       end
 
       it 'returns error for multiple statements' do
