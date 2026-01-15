@@ -1,6 +1,7 @@
 module QueryConsole
   class ApplicationController < ActionController::Base
-    protect_from_forgery with: :exception
+    # Rails 8 CSRF protection
+    protect_from_forgery with: :exception, prepend: true
 
     before_action :ensure_enabled!
     before_action :authorize_access!
