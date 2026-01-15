@@ -21,6 +21,10 @@ module QueryConsole
       def failure?
         !success?
       end
+
+      def truncated?
+        @truncated
+      end
     end
 
     def initialize(sql, config = QueryConsole.configuration)
