@@ -93,6 +93,15 @@
       border-radius: 8px;
       padding: 20px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      transition: all 0.3s ease;
+    }
+
+    .editor-section.collapsed {
+      padding: 15px 20px;
+    }
+
+    .editor-section.collapsed .editor-content {
+      display: none;
     }
 
     .editor-header {
@@ -100,11 +109,38 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
+      position: relative;
+    }
+
+    .editor-section.collapsed .editor-header {
+      margin-bottom: 0;
     }
 
     .editor-header h3 {
       margin: 0;
       font-size: 20px;
+      flex-grow: 1;
+    }
+
+    .section-toggle {
+      background: transparent;
+      border: none;
+      color: #6c757d;
+      font-size: 18px;
+      cursor: pointer;
+      padding: 5px 10px;
+      margin-left: 10px;
+      transition: transform 0.3s ease, color 0.2s;
+      order: 1;
+    }
+
+    .section-toggle:hover {
+      color: #007bff;
+      transform: scale(1.2);
+    }
+
+    .collapsed .section-toggle {
+      transform: rotate(180deg);
     }
 
     .button-group {
@@ -178,6 +214,17 @@
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
       max-height: 800px;
       overflow-y: auto;
+      transition: all 0.3s ease;
+    }
+
+    .history-section.collapsed {
+      padding: 15px 20px;
+      max-height: none;
+      overflow: visible;
+    }
+
+    .history-section.collapsed .history-content {
+      display: none;
     }
 
     .history-header {
@@ -185,11 +232,17 @@
       justify-content: space-between;
       align-items: center;
       margin-bottom: 15px;
+      position: relative;
+    }
+
+    .history-section.collapsed .history-header {
+      margin-bottom: 0;
     }
 
     .history-header h3 {
       margin: 0;
       font-size: 18px;
+      flex-grow: 1;
     }
 
     .history-list {
@@ -258,30 +311,36 @@
     </div>
 
     <div class="main-layout">
-      <div class="editor-section">
+      <div class="editor-section" id="editor-section">
         <div class="editor-header">
           <h3>SQL Editor</h3>
           <div class="button-group">
             <button id="clear-btn" class="btn-secondary">Clear</button>
             <button id="run-btn" class="btn-primary">Run Query</button>
           </div>
+          <button class="section-toggle" id="editor-toggle" title="Toggle editor">▼</button>
         </div>
 
-        <textarea id="sql-editor" placeholder="Enter your SELECT query here...
+        <div class="editor-content">
+          <textarea id="sql-editor" placeholder="Enter your SELECT query here...
 Example:
 SELECT * FROM users LIMIT 10;"></textarea>
 
-        <div id="results"></div>
+          <div id="results"></div>
+        </div>
       </div>
 
-      <div class="history-section">
+      <div class="history-section" id="history-section">
         <div class="history-header">
           <h3>Query History</h3>
           <button id="clear-history-btn" class="btn-danger">Clear</button>
+          <button class="section-toggle" id="history-toggle" title="Toggle history">▼</button>
         </div>
-        <ul id="history-list" class="history-list">
-          <li class="empty-history">No query history yet</li>
-        </ul>
+        <div class="history-content">
+          <ul id="history-list" class="history-list">
+            <li class="empty-history">No query history yet</li>
+          </ul>
+        </div>
       </div>
     </div>
   </div>
@@ -289,12 +348,16 @@ SELECT * FROM users LIMIT 10;"></textarea>
   <script>
     const HISTORY_KEY = 'query_console.history.v1';
     const BANNER_STATE_KEY = 'query_console.banner_collapsed';
+    const EDITOR_STATE_KEY = 'query_console.editor_collapsed';
+    const HISTORY_SECTION_STATE_KEY = 'query_console.history_section_collapsed';
     const MAX_HISTORY = 20;
 
-    // Load history and banner state on page load
+    // Load history and all section states on page load
     document.addEventListener('DOMContentLoaded', function() {
       loadHistory();
       loadBannerState();
+      loadEditorState();
+      loadHistorySectionState();
     });
 
     // Banner toggle functionality
@@ -311,12 +374,58 @@ SELECT * FROM users LIMIT 10;"></textarea>
       this.textContent = isCollapsed ? '▲' : '▼';
     });
 
+    // Editor toggle functionality
+    document.getElementById('editor-toggle').addEventListener('click', function(e) {
+      e.preventDefault();
+      const section = document.getElementById('editor-section');
+      section.classList.toggle('collapsed');
+      
+      // Save state to localStorage
+      const isCollapsed = section.classList.contains('collapsed');
+      localStorage.setItem(EDITOR_STATE_KEY, isCollapsed ? 'true' : 'false');
+      
+      // Update button text
+      this.textContent = isCollapsed ? '▲' : '▼';
+    });
+
+    // History section toggle functionality
+    document.getElementById('history-toggle').addEventListener('click', function(e) {
+      e.preventDefault();
+      const section = document.getElementById('history-section');
+      section.classList.toggle('collapsed');
+      
+      // Save state to localStorage
+      const isCollapsed = section.classList.contains('collapsed');
+      localStorage.setItem(HISTORY_SECTION_STATE_KEY, isCollapsed ? 'true' : 'false');
+      
+      // Update button text
+      this.textContent = isCollapsed ? '▲' : '▼';
+    });
+
     function loadBannerState() {
       const isCollapsed = localStorage.getItem(BANNER_STATE_KEY) === 'true';
       if (isCollapsed) {
         const banner = document.getElementById('security-banner');
         banner.classList.add('collapsed');
         document.getElementById('banner-toggle').textContent = '▲';
+      }
+    }
+
+    function loadEditorState() {
+      const isCollapsed = localStorage.getItem(EDITOR_STATE_KEY) === 'true';
+      if (isCollapsed) {
+        const section = document.getElementById('editor-section');
+        section.classList.add('collapsed');
+        document.getElementById('editor-toggle').textContent = '▲';
+      }
+    }
+
+    function loadHistorySectionState() {
+      const isCollapsed = localStorage.getItem(HISTORY_SECTION_STATE_KEY) === 'true';
+      if (isCollapsed) {
+        const section = document.getElementById('history-section');
+        section.classList.add('collapsed');
+        document.getElementById('history-toggle').textContent = '▲';
       }
     }
 
