@@ -240,12 +240,29 @@ end
 
 ## Development
 
-### Running Tests
+### Testing Without a Rails App
 
+You can test the gem in isolation without needing a full Rails application:
+
+**Option 1: Run automated tests**
 ```bash
+cd query_console
 bundle install
 bundle exec rspec
 ```
+
+**Option 2: Start the test server**
+```bash
+cd query_console
+bundle install
+./bin/test_server
+```
+
+Then visit: http://localhost:9292/query_console
+
+The test server includes sample data and is pre-configured for easy testing.
+
+**See [TESTING.md](TESTING.md) for detailed testing instructions.**
 
 ### Test Coverage
 

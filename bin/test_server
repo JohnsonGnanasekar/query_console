@@ -1,0 +1,42 @@
+#!/usr/bin/env ruby
+
+# Standalone test server for query_console gem
+
+require 'bundler/setup'
+require 'rails'
+require 'action_controller/railtie'
+require 'active_record'
+
+# Load the gem
+require_relative '../lib/query_console'
+
+# Set up Rails environment
+ENV['RAILS_ENV'] ||= 'development'
+
+# Load dummy app
+require_relative '../spec/dummy/config/environment'
+
+# Setup database and seed
+puts "🔧 Setting up test database..."
+ActiveRecord::Base.establish_connection(
+  adapter: 'sqlite3',
+  database: ':memory:'
+)
+
+# Load seeds
+load File.expand_path('../spec/dummy/db/seeds.rb', __dir__)
+
+puts ""
+puts "🚀 Starting QueryConsole test server..."
+puts "📍 Visit: http://localhost:9292/query_console"
+puts ""
+puts "Press Ctrl+C to stop"
+puts ""
+
+# Start the server
+require 'rack'
+require 'webrick'
+
+app = Rails.application
+
+Rack::Handler::WEBrick.run(app, Port: 9292, AccessLog: [], Logger: WEBrick::Log.new("/dev/null"))
