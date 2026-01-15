@@ -4,6 +4,9 @@
   <title>Query Console</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <%= csrf_meta_tags %>
+  <%= turbo_include_tags %>
+  <%= stimulus_include_tags %>
+  
   <style>
     * {
       box-sizing: border-box;
@@ -148,14 +151,13 @@
       gap: 10px;
     }
 
-    button {
+    .btn-primary, .btn-secondary, .btn-danger {
       padding: 10px 20px;
       border: none;
       border-radius: 4px;
       font-size: 14px;
-      font-weight: 600;
       cursor: pointer;
-      transition: background 0.2s;
+      transition: all 0.2s;
     }
 
     .btn-primary {
@@ -163,8 +165,13 @@
       color: white;
     }
 
-    .btn-primary:hover {
+    .btn-primary:hover:not(:disabled) {
       background: #0056b3;
+    }
+
+    .btn-primary:disabled {
+      background: #6c757d;
+      cursor: not-allowed;
     }
 
     .btn-secondary {
@@ -180,31 +187,29 @@
       background: #dc3545;
       color: white;
       font-size: 12px;
-      padding: 6px 12px;
+      padding: 5px 10px;
     }
 
     .btn-danger:hover {
       background: #c82333;
     }
 
-    #sql-editor {
+    textarea {
       width: 100%;
       min-height: 200px;
-      padding: 12px;
+      padding: 15px;
       border: 1px solid #ddd;
       border-radius: 4px;
-      font-family: 'Courier New', monospace;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       font-size: 14px;
       resize: vertical;
+      margin-bottom: 15px;
     }
 
-    #sql-editor:focus {
+    textarea:focus {
       outline: none;
       border-color: #007bff;
-    }
-
-    #results {
-      margin-top: 20px;
+      box-shadow: 0 0 0 3px rgba(0,123,255,0.1);
     }
 
     .history-section {
@@ -252,23 +257,31 @@
     }
 
     .history-item {
-      padding: 10px;
-      margin-bottom: 8px;
-      background: #f8f9fa;
-      border-radius: 4px;
-      cursor: pointer;
-      transition: background 0.2s;
-      border-left: 3px solid #007bff;
+      margin-bottom: 10px;
     }
 
-    .history-item:hover {
+    .history-item-button {
+      width: 100%;
+      background: #f8f9fa;
+      border: 1px solid #dee2e6;
+      border-radius: 4px;
+      padding: 10px;
+      text-align: left;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+
+    .history-item-button:hover {
       background: #e9ecef;
+      border-color: #007bff;
+      transform: translateX(2px);
     }
 
     .history-item-sql {
-      font-family: 'Courier New', monospace;
+      font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
       font-size: 12px;
       color: #495057;
+      margin-bottom: 5px;
       white-space: nowrap;
       overflow: hidden;
       text-overflow: ellipsis;
@@ -277,31 +290,27 @@
     .history-item-time {
       font-size: 11px;
       color: #6c757d;
-      margin-top: 4px;
     }
 
     .empty-history {
-      text-align: center;
       color: #6c757d;
+      font-style: italic;
+      text-align: center;
       padding: 20px;
-      font-size: 14px;
     }
 
     @media (max-width: 768px) {
       .main-layout {
         grid-template-columns: 1fr;
       }
-
-      .history-section {
-        max-height: 400px;
-      }
     }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="banner" id="security-banner">
-      <button class="banner-toggle" id="banner-toggle" title="Toggle banner">▼</button>
+    <!-- Security Banner - Collapsible -->
+    <div class="banner" id="security-banner" data-controller="collapsible" data-collapsible-key-value="banner">
+      <button class="banner-toggle" data-action="click->collapsible#toggle" title="Toggle banner">▼</button>
       <h2>🔍 Read-Only SQL Query Console</h2>
       <div class="banner-content">
         <p><strong>Security Notice:</strong> This console is enabled only in development by default.</p>
@@ -311,33 +320,49 @@
     </div>
 
     <div class="main-layout">
-      <div class="editor-section" id="editor-section">
+      <!-- SQL Editor Section - Collapsible -->
+      <div class="editor-section" id="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor">
         <div class="editor-header">
           <h3>SQL Editor</h3>
           <div class="button-group">
-            <button id="clear-btn" class="btn-secondary">Clear</button>
-            <button id="run-btn" class="btn-primary">Run Query</button>
+            <button data-action="click->editor#clear" data-editor-target="clearButton" class="btn-secondary">Clear</button>
+            <%= form_with url: query_console.run_path, method: :post, data: { 
+              turbo_frame: "query-results",
+              action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess"
+            } do |f| %>
+              <%= f.text_area :sql, 
+                placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
+                data: { editor_target: "textarea" },
+                style: "display: none;" %>
+              <%= f.submit "Run Query", class: "btn-primary", data: { editor_target: "runButton", action: "click->editor#submit" } %>
+            <% end %>
           </div>
-          <button class="section-toggle" id="editor-toggle" title="Toggle editor">▼</button>
+          <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor">▼</button>
         </div>
 
         <div class="editor-content">
-          <textarea id="sql-editor" placeholder="Enter your SELECT query here...
-Example:
-SELECT * FROM users LIMIT 10;"></textarea>
+          <%= text_area_tag :sql, "", 
+            placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
+            data: { editor_target: "textarea" } %>
 
-          <div id="results"></div>
+          <!-- Turbo Frame for Results -->
+          <%= turbo_frame_tag "query-results", data: { editor_target: "results" } do %>
+            <div style="color: #6c757d; text-align: center; padding: 40px;">
+              <p>Enter a query above and click "Run Query" to see results here.</p>
+            </div>
+          <% end %>
         </div>
       </div>
 
-      <div class="history-section" id="history-section">
+      <!-- Query History Section - Collapsible -->
+      <div class="history-section" id="history-section" data-controller="history collapsible" data-collapsible-key-value="history_section">
         <div class="history-header">
           <h3>Query History</h3>
-          <button id="clear-history-btn" class="btn-danger">Clear</button>
-          <button class="section-toggle" id="history-toggle" title="Toggle history">▼</button>
+          <button data-action="click->history#clear" class="btn-danger">Clear</button>
+          <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle history">▼</button>
         </div>
         <div class="history-content">
-          <ul id="history-list" class="history-list">
+          <ul class="history-list" data-history-target="list">
             <li class="empty-history">No query history yet</li>
           </ul>
         </div>
@@ -345,214 +370,19 @@ SELECT * FROM users LIMIT 10;"></textarea>
     </div>
   </div>
 
-  <script>
-    const HISTORY_KEY = 'query_console.history.v1';
-    const BANNER_STATE_KEY = 'query_console.banner_collapsed';
-    const EDITOR_STATE_KEY = 'query_console.editor_collapsed';
-    const HISTORY_SECTION_STATE_KEY = 'query_console.history_section_collapsed';
-    const MAX_HISTORY = 20;
-
-    // Load history and all section states on page load
-    document.addEventListener('DOMContentLoaded', function() {
-      loadHistory();
-      loadBannerState();
-      loadEditorState();
-      loadHistorySectionState();
-    });
-
-    // Banner toggle functionality
-    document.getElementById('banner-toggle').addEventListener('click', function(e) {
-      e.preventDefault();
-      const banner = document.getElementById('security-banner');
-      banner.classList.toggle('collapsed');
-      
-      // Save state to localStorage
-      const isCollapsed = banner.classList.contains('collapsed');
-      localStorage.setItem(BANNER_STATE_KEY, isCollapsed ? 'true' : 'false');
-      
-      // Update button text
-      this.textContent = isCollapsed ? '▲' : '▼';
-    });
-
-    // Editor toggle functionality
-    document.getElementById('editor-toggle').addEventListener('click', function(e) {
-      e.preventDefault();
-      const section = document.getElementById('editor-section');
-      section.classList.toggle('collapsed');
-      
-      // Save state to localStorage
-      const isCollapsed = section.classList.contains('collapsed');
-      localStorage.setItem(EDITOR_STATE_KEY, isCollapsed ? 'true' : 'false');
-      
-      // Update button text
-      this.textContent = isCollapsed ? '▲' : '▼';
-    });
-
-    // History section toggle functionality
-    document.getElementById('history-toggle').addEventListener('click', function(e) {
-      e.preventDefault();
-      const section = document.getElementById('history-section');
-      section.classList.toggle('collapsed');
-      
-      // Save state to localStorage
-      const isCollapsed = section.classList.contains('collapsed');
-      localStorage.setItem(HISTORY_SECTION_STATE_KEY, isCollapsed ? 'true' : 'false');
-      
-      // Update button text
-      this.textContent = isCollapsed ? '▲' : '▼';
-    });
-
-    function loadBannerState() {
-      const isCollapsed = localStorage.getItem(BANNER_STATE_KEY) === 'true';
-      if (isCollapsed) {
-        const banner = document.getElementById('security-banner');
-        banner.classList.add('collapsed');
-        document.getElementById('banner-toggle').textContent = '▲';
+  <!-- Load Hotwire and Stimulus -->
+  <script type="importmap">
+    {
+      "imports": {
+        "@hotwired/turbo-rails": "<%= asset_path('turbo.min.js') %>",
+        "@hotwired/stimulus": "<%= asset_path('stimulus.min.js') %>",
+        "query_console/application": "<%= asset_path('query_console/application.js') %>"
       }
     }
+  </script>
 
-    function loadEditorState() {
-      const isCollapsed = localStorage.getItem(EDITOR_STATE_KEY) === 'true';
-      if (isCollapsed) {
-        const section = document.getElementById('editor-section');
-        section.classList.add('collapsed');
-        document.getElementById('editor-toggle').textContent = '▲';
-      }
-    }
-
-    function loadHistorySectionState() {
-      const isCollapsed = localStorage.getItem(HISTORY_SECTION_STATE_KEY) === 'true';
-      if (isCollapsed) {
-        const section = document.getElementById('history-section');
-        section.classList.add('collapsed');
-        document.getElementById('history-toggle').textContent = '▲';
-      }
-    }
-
-    // Run button handler
-    document.getElementById('run-btn').addEventListener('click', function() {
-      runQuery();
-    });
-
-    // Clear button handler
-    document.getElementById('clear-btn').addEventListener('click', function() {
-      document.getElementById('sql-editor').value = '';
-      document.getElementById('results').innerHTML = '';
-    });
-
-    // Clear history button handler
-    document.getElementById('clear-history-btn').addEventListener('click', function() {
-      if (confirm('Are you sure you want to clear all query history?')) {
-        localStorage.removeItem(HISTORY_KEY);
-        loadHistory();
-      }
-    });
-
-    // Ctrl/Cmd + Enter to run query
-    document.getElementById('sql-editor').addEventListener('keydown', function(e) {
-      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
-        e.preventDefault();
-        runQuery();
-      }
-    });
-
-    function runQuery() {
-      const sql = document.getElementById('sql-editor').value.trim();
-      
-      if (!sql) {
-        alert('Please enter a query');
-        return;
-      }
-
-      // Show loading state
-      const resultsDiv = document.getElementById('results');
-      resultsDiv.innerHTML = '<p style="color: #6c757d;">Executing query...</p>';
-
-      // Make request
-      fetch('<%= query_console.run_path %>', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
-        },
-        body: 'sql=' + encodeURIComponent(sql)
-      })
-      .then(response => response.text())
-      .then(html => {
-        resultsDiv.innerHTML = html;
-        
-        // Save to history if query was successful (check if results contain error)
-        if (!html.includes('error-message')) {
-          saveToHistory(sql);
-        }
-      })
-      .catch(error => {
-        resultsDiv.innerHTML = '<div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">Request failed: ' + error.message + '</div>';
-      });
-    }
-
-    function saveToHistory(sql) {
-      let history = getHistory();
-      
-      // Add new query to beginning
-      history.unshift({
-        sql: sql,
-        timestamp: new Date().toISOString()
-      });
-
-      // Limit to MAX_HISTORY items
-      history = history.slice(0, MAX_HISTORY);
-
-      // Save back to localStorage
-      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
-      
-      // Reload history display
-      loadHistory();
-    }
-
-    function getHistory() {
-      try {
-        const data = localStorage.getItem(HISTORY_KEY);
-        return data ? JSON.parse(data) : [];
-      } catch (e) {
-        console.error('Failed to load history:', e);
-        return [];
-      }
-    }
-
-    function loadHistory() {
-      const history = getHistory();
-      const historyList = document.getElementById('history-list');
-      
-      if (history.length === 0) {
-        historyList.innerHTML = '<li class="empty-history">No query history yet</li>';
-        return;
-      }
-
-      historyList.innerHTML = history.map(item => {
-        const date = new Date(item.timestamp);
-        const timeStr = date.toLocaleString();
-        
-        return `
-          <li class="history-item" onclick="loadQueryFromHistory(this)" data-sql="${escapeHtml(item.sql)}">
-            <div class="history-item-sql">${escapeHtml(item.sql)}</div>
-            <div class="history-item-time">${timeStr}</div>
-          </li>
-        `;
-      }).join('');
-    }
-
-    function loadQueryFromHistory(element) {
-      const sql = element.getAttribute('data-sql');
-      document.getElementById('sql-editor').value = sql;
-      document.getElementById('sql-editor').focus();
-    }
-
-    function escapeHtml(text) {
-      const div = document.createElement('div');
-      div.textContent = text;
-      return div.innerHTML;
-    }
+  <script type="module">
+    import "query_console/application"
   </script>
 </body>
 </html>

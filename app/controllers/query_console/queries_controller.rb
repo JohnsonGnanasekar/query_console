@@ -9,7 +9,10 @@ module QueryConsole
 
       if sql.blank?
         @result = Runner::QueryResult.new(error: "Query cannot be empty")
-        render :_results, layout: false
+        respond_to do |format|
+          format.turbo_stream { render turbo_stream: turbo_stream.replace("query-results", partial: "results", locals: { result: @result }) }
+          format.html { render :_results, layout: false }
+        end
         return
       end
 
@@ -24,8 +27,17 @@ module QueryConsole
         controller: self
       )
 
-      # Render the results partial
-      render :_results, layout: false
+      # Respond with Turbo Stream or HTML
+      respond_to do |format|
+        format.turbo_stream do
+          render turbo_stream: turbo_stream.replace(
+            "query-results",
+            partial: "results",
+            locals: { result: @result }
+          )
+        end
+        format.html { render :_results, layout: false }
+      end
     end
   end
 end
