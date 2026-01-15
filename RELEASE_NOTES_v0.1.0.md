@@ -6,6 +6,19 @@
 
 ---
 
+## 📦 Published Gem
+
+**🎉 Now available on RubyGems.org!**
+
+[![Gem Version](https://badge.fury.io/rb/query_console.svg)](https://badge.fury.io/rb/query_console)
+
+- **Install**: `gem install query_console`
+- **RubyGems Page**: https://rubygems.org/gems/query_console
+- **Version**: 0.1.0
+- **License**: MIT
+
+---
+
 ## 🌟 What is QueryConsole?
 
 QueryConsole is a secure, mountable Rails engine that provides a web-based interface for running read-only SQL queries against your application's database. Perfect for development, debugging, and safe database exploration.
@@ -41,6 +54,8 @@ QueryConsole is a secure, mountable Rails engine that provides a web-based inter
 ---
 
 ## 📦 Installation
+
+**Available on RubyGems**: https://rubygems.org/gems/query_console
 
 ```ruby
 # Add to Gemfile
@@ -258,9 +273,11 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 ## 🔗 Links
 
+- **RubyGems**: https://rubygems.org/gems/query_console
 - **Repository**: https://github.com/JohnsonGnanasekar/query_console
 - **Issues**: https://github.com/JohnsonGnanasekar/query_console/issues
 - **Releases**: https://github.com/JohnsonGnanasekar/query_console/releases
+- **Documentation**: https://github.com/JohnsonGnanasekar/query_console/blob/main/README.md
 
 ---
 
