@@ -11,5 +11,5 @@ QueryConsole.configure do |config|
   
   # Test limits
   config.max_rows = 100
-  config.timeout_ms = 5000
+  config.timeout_ms = 30000  # 30 seconds - more generous for development
 end
