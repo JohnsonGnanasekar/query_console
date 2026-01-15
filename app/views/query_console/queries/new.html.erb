@@ -321,38 +321,34 @@
 
     <div class="main-layout">
       <!-- SQL Editor Section - Collapsible -->
-      <div class="editor-section" id="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor">
-        <div class="editor-header">
-          <h3>SQL Editor</h3>
-          <div class="button-group">
-            <button data-action="click->editor#clear" data-editor-target="clearButton" class="btn-secondary">Clear</button>
-            <%= form_with url: query_console.run_path, method: :post, data: { 
-              turbo_frame: "query-results",
-              action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess"
-            } do |f| %>
-              <%= f.text_area :sql, 
-                placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
-                data: { editor_target: "textarea" },
-                style: "display: none;" %>
+      <%= form_with url: query_console.run_path, method: :post, data: { 
+        turbo_frame: "query-results",
+        action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess"
+      } do |f| %>
+        <div class="editor-section" id="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor">
+          <div class="editor-header">
+            <h3>SQL Editor</h3>
+            <div class="button-group">
+              <button type="button" data-action="click->editor#clear" data-editor-target="clearButton" class="btn-secondary">Clear</button>
               <%= f.submit "Run Query", class: "btn-primary", data: { editor_target: "runButton", action: "click->editor#submit" } %>
+            </div>
+            <button type="button" class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor">▼</button>
+          </div>
+
+          <div class="editor-content">
+            <%= f.text_area :sql, 
+              placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
+              data: { editor_target: "textarea" } %>
+
+            <!-- Turbo Frame for Results -->
+            <%= turbo_frame_tag "query-results", data: { editor_target: "results" } do %>
+              <div style="color: #6c757d; text-align: center; padding: 40px;">
+                <p>Enter a query above and click "Run Query" to see results here.</p>
+              </div>
             <% end %>
           </div>
-          <button class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor">▼</button>
         </div>
-
-        <div class="editor-content">
-          <%= text_area_tag :sql, "", 
-            placeholder: "Enter your SELECT query here...\n\nExample:\nSELECT * FROM users LIMIT 10;",
-            data: { editor_target: "textarea" } %>
-
-          <!-- Turbo Frame for Results -->
-          <%= turbo_frame_tag "query-results", data: { editor_target: "results" } do %>
-            <div style="color: #6c757d; text-align: center; padding: 40px;">
-              <p>Enter a query above and click "Run Query" to see results here.</p>
-            </div>
-          <% end %>
-        </div>
-      </div>
+      <% end %>
 
       <!-- Query History Section - Collapsible -->
       <div class="history-section" id="history-section" data-controller="history collapsible" data-collapsible-key-value="history_section">
