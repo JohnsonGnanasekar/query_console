@@ -11,8 +11,9 @@ Gem::Specification.new do |spec|
   spec.license     = "MIT"
 
   spec.metadata["homepage_uri"] = spec.homepage
-  spec.metadata["source_code_uri"] = "https://github.com/JohnsonGnanasekar/query_console"
   spec.metadata["changelog_uri"] = "https://github.com/JohnsonGnanasekar/query_console/blob/main/CHANGELOG.md"
+  spec.metadata["bug_tracker_uri"] = "https://github.com/JohnsonGnanasekar/query_console/issues"
+  spec.metadata["documentation_uri"] = "https://github.com/JohnsonGnanasekar/query_console/blob/main/README.md"
 
   spec.files = Dir.chdir(File.expand_path(__dir__)) do
     Dir["{app,config,lib}/**/*", "MIT-LICENSE", "Rakefile", "README.md"]
@@ -20,11 +21,11 @@ Gem::Specification.new do |spec|
 
   spec.required_ruby_version = ">= 3.1.0"
 
-  spec.add_dependency "rails", ">= 7.0.0"
+  spec.add_dependency "rails", "~> 7.0", ">= 7.0.0"
   spec.add_dependency "turbo-rails", "~> 2.0"
   spec.add_dependency "stimulus-rails", "~> 1.3"
   spec.add_dependency "importmap-rails", "~> 2.0"
 
-  spec.add_development_dependency "rspec-rails", ">= 5.0"
-  spec.add_development_dependency "sqlite3", ">= 1.4"
+  spec.add_development_dependency "rspec-rails", "~> 5.0"
+  spec.add_development_dependency "sqlite3", "~> 1.4"
 end
