@@ -1,7 +1,10 @@
 module QueryConsole
   class ApplicationController < ActionController::Base
-    # Rails 8 CSRF protection
+    # Rails 8 CSRF protection - use null_session for Turbo Frame requests
     protect_from_forgery with: :exception, prepend: true
+    
+    # Skip CSRF for Turbo Frame requests (Turbo handles it via meta tags)
+    skip_forgery_protection if: -> { request.headers['Turbo-Frame'].present? }
 
     before_action :ensure_enabled!
     before_action :authorize_access!
