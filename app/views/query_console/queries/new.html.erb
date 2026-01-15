@@ -378,10 +378,14 @@
 
   <!-- Load Stimulus controllers inline -->
   <script type="module">
-    import { Application } from "@hotwired/stimulus"
-    import { Controller } from "@hotwired/stimulus"
+    import * as Turbo from "@hotwired/turbo-rails"
+    import { Application, Controller } from "@hotwired/stimulus"
+    
+    // Make Turbo available globally
+    window.Turbo = Turbo
     
     const application = Application.start()
+    window.Stimulus = application
     
     // Collapsible Controller
     class CollapsibleController extends Controller {
