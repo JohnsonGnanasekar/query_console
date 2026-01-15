@@ -57,9 +57,11 @@
   }
 
   .table-wrapper {
-    overflow-x: auto;
+    overflow: auto;
     border: 1px solid #dee2e6;
     border-radius: 4px;
+    max-height: 500px;
+    position: relative;
   }
 
   .results-table {
@@ -73,6 +75,7 @@
     background: #f8f9fa;
     position: sticky;
     top: 0;
+    z-index: 10;
   }
 
   .results-table th {
