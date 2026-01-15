@@ -32,10 +32,8 @@ users = [
 ]
 
 users.each do |name, email, role, active|
-  ActiveRecord::Base.connection.execute(
-    "INSERT INTO users (name, email, role, active) VALUES (?, ?, ?, ?)",
-    name, email, role, active
-  )
+  sql = "INSERT INTO users (name, email, role, active) VALUES ('#{name}', '#{email}', '#{role}', #{active})"
+  ActiveRecord::Base.connection.execute(sql)
 end
 
 # Insert sample posts
@@ -49,10 +47,8 @@ posts = [
 ]
 
 posts.each do |user_id, title, content, published|
-  ActiveRecord::Base.connection.execute(
-    "INSERT INTO posts (user_id, title, content, published) VALUES (?, ?, ?, ?)",
-    user_id, title, content, published
-  )
+  sql = "INSERT INTO posts (user_id, title, content, published) VALUES (#{user_id}, '#{title}', '#{content}', #{published})"
+  ActiveRecord::Base.connection.execute(sql)
 end
 
 puts "✅ Created 5 users and 6 posts for testing"

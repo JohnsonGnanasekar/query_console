@@ -3,40 +3,29 @@
 # Standalone test server for query_console gem
 
 require 'bundler/setup'
-require 'rails'
-require 'action_controller/railtie'
-require 'active_record'
 
-# Load the gem
-require_relative '../lib/query_console'
-
-# Set up Rails environment
+# Set up Rails environment first
 ENV['RAILS_ENV'] ||= 'development'
 
 # Load dummy app
 require_relative '../spec/dummy/config/environment'
 
-# Setup database and seed
-puts "🔧 Setting up test database..."
-ActiveRecord::Base.establish_connection(
-  adapter: 'sqlite3',
-  database: ':memory:'
-)
-
 # Load seeds
+puts "🔧 Setting up test database..."
 load File.expand_path('../spec/dummy/db/seeds.rb', __dir__)
 
 puts ""
-puts "🚀 Starting QueryConsole test server..."
+puts "🚀 Starting QueryConsole test server with Puma..."
 puts "📍 Visit: http://localhost:9292/query_console"
 puts ""
 puts "Press Ctrl+C to stop"
 puts ""
 
-# Start the server
-require 'rack'
-require 'webrick'
+# Simple Puma server
+require 'puma'
 
 app = Rails.application
 
-Rack::Handler::WEBrick.run(app, Port: 9292, AccessLog: [], Logger: WEBrick::Log.new("/dev/null"))
+server = Puma::Server.new(app)
+server.add_tcp_listener '0.0.0.0', 9292
+server.run.join

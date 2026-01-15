@@ -40,6 +40,11 @@ bundle install
 rails generate query_console:install
 ```
 
+**Requirements:**
+- Ruby 3.1+
+- Rails 7.0+
+- Works with Rails 8+
+
 ## Configuration
 
 The generator creates `config/initializers/query_console.rb`. You **MUST** configure the authorization hook:
