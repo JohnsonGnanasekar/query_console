@@ -29,16 +29,57 @@
       padding: 15px;
       margin-bottom: 20px;
       color: #856404;
+      position: relative;
+      transition: all 0.3s ease;
+    }
+
+    .banner.collapsed {
+      padding: 10px 15px;
+    }
+
+    .banner.collapsed .banner-content {
+      display: none;
+    }
+
+    .banner.collapsed h2 {
+      margin: 0;
     }
 
     .banner h2 {
       margin: 0 0 10px 0;
       font-size: 18px;
+      padding-right: 30px;
     }
 
     .banner p {
       margin: 5px 0;
       font-size: 14px;
+    }
+
+    .banner-toggle {
+      position: absolute;
+      top: 15px;
+      right: 15px;
+      background: transparent;
+      border: none;
+      color: #856404;
+      font-size: 20px;
+      cursor: pointer;
+      padding: 0;
+      width: 24px;
+      height: 24px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      transition: transform 0.3s ease;
+    }
+
+    .banner-toggle:hover {
+      transform: scale(1.2);
+    }
+
+    .banner.collapsed .banner-toggle {
+      transform: rotate(180deg);
     }
 
     .main-layout {
@@ -206,11 +247,14 @@
 </head>
 <body>
   <div class="container">
-    <div class="banner">
+    <div class="banner" id="security-banner">
+      <button class="banner-toggle" id="banner-toggle" title="Toggle banner">▼</button>
       <h2>🔍 Read-Only SQL Query Console</h2>
-      <p><strong>Security Notice:</strong> This console is enabled only in development by default.</p>
-      <p>All queries are logged and restricted to read-only operations (SELECT statements only).</p>
-      <p>Multiple statements and write operations are blocked for security.</p>
+      <div class="banner-content">
+        <p><strong>Security Notice:</strong> This console is enabled only in development by default.</p>
+        <p>All queries are logged and restricted to read-only operations (SELECT statements only).</p>
+        <p>Multiple statements and write operations are blocked for security.</p>
+      </div>
     </div>
 
     <div class="main-layout">
@@ -244,12 +288,37 @@ SELECT * FROM users LIMIT 10;"></textarea>
 
   <script>
     const HISTORY_KEY = 'query_console.history.v1';
+    const BANNER_STATE_KEY = 'query_console.banner_collapsed';
     const MAX_HISTORY = 20;
 
-    // Load history on page load
+    // Load history and banner state on page load
     document.addEventListener('DOMContentLoaded', function() {
       loadHistory();
+      loadBannerState();
     });
+
+    // Banner toggle functionality
+    document.getElementById('banner-toggle').addEventListener('click', function(e) {
+      e.preventDefault();
+      const banner = document.getElementById('security-banner');
+      banner.classList.toggle('collapsed');
+      
+      // Save state to localStorage
+      const isCollapsed = banner.classList.contains('collapsed');
+      localStorage.setItem(BANNER_STATE_KEY, isCollapsed ? 'true' : 'false');
+      
+      // Update button text
+      this.textContent = isCollapsed ? '▲' : '▼';
+    });
+
+    function loadBannerState() {
+      const isCollapsed = localStorage.getItem(BANNER_STATE_KEY) === 'true';
+      if (isCollapsed) {
+        const banner = document.getElementById('security-banner');
+        banner.classList.add('collapsed');
+        document.getElementById('banner-toggle').textContent = '▲';
+      }
+    }
 
     // Run button handler
     document.getElementById('run-btn').addEventListener('click', function() {
