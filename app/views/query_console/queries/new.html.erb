@@ -323,14 +323,15 @@
       <!-- SQL Editor Section - Collapsible -->
       <%= form_with url: query_console.run_path, method: :post, data: { 
         turbo_frame: "query-results",
-        action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess"
+        controller: "editor",
+        action: "turbo:submit-end->editor#querySuccess turbo:frame-render->editor#querySuccess submit->editor#handleSubmit"
       } do |f| %>
-        <div class="editor-section" id="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor">
+        <div class="editor-section" id="editor-section" data-controller="collapsible" data-collapsible-key-value="editor">
           <div class="editor-header">
             <h3>SQL Editor</h3>
             <div class="button-group">
               <button type="button" data-action="click->editor#clear" data-editor-target="clearButton" class="btn-secondary">Clear</button>
-              <%= f.submit "Run Query", class: "btn-primary", data: { editor_target: "runButton", action: "click->editor#submit" } %>
+              <%= f.submit "Run Query", class: "btn-primary", data: { editor_target: "runButton" } %>
             </div>
             <button type="button" class="section-toggle" data-action="click->collapsible#toggle" title="Toggle editor">▼</button>
           </div>
@@ -521,8 +522,9 @@
         this.textareaTarget.focus()
       }
       
-      submit(event) {
+      handleSubmit(event) {
         const sql = this.textareaTarget.value.trim()
+        
         if (!sql) {
           event.preventDefault()
           alert('Please enter a SQL query')
@@ -532,13 +534,16 @@
         // Store SQL for after execution
         window._lastExecutedSQL = sql
         
+        // Show loading state
         this.runButtonTarget.disabled = true
-        this.runButtonTarget.textContent = 'Running...'
+        this.runButtonTarget.value = 'Running...'
+        
+        // Let form submit naturally (Turbo will intercept it)
       }
       
       querySuccess() {
         this.runButtonTarget.disabled = false
-        this.runButtonTarget.textContent = 'Run Query'
+        this.runButtonTarget.value = 'Run Query'
         
         if (window._lastExecutedSQL) {
           document.dispatchEvent(new CustomEvent('editor:executed', {
