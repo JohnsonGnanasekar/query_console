@@ -1,0 +1,379 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Query Console</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+      margin: 0;
+      padding: 20px;
+      background: #f5f5f5;
+      color: #333;
+    }
+
+    .container {
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .banner {
+      background: #fff3cd;
+      border: 1px solid #ffc107;
+      border-radius: 4px;
+      padding: 15px;
+      margin-bottom: 20px;
+      color: #856404;
+    }
+
+    .banner h2 {
+      margin: 0 0 10px 0;
+      font-size: 18px;
+    }
+
+    .banner p {
+      margin: 5px 0;
+      font-size: 14px;
+    }
+
+    .main-layout {
+      display: grid;
+      grid-template-columns: 1fr 300px;
+      gap: 20px;
+    }
+
+    .editor-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    }
+
+    .editor-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .editor-header h3 {
+      margin: 0;
+      font-size: 20px;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+    }
+
+    button {
+      padding: 10px 20px;
+      border: none;
+      border-radius: 4px;
+      font-size: 14px;
+      font-weight: 600;
+      cursor: pointer;
+      transition: background 0.2s;
+    }
+
+    .btn-primary {
+      background: #007bff;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      background: #0056b3;
+    }
+
+    .btn-secondary {
+      background: #6c757d;
+      color: white;
+    }
+
+    .btn-secondary:hover {
+      background: #545b62;
+    }
+
+    .btn-danger {
+      background: #dc3545;
+      color: white;
+      font-size: 12px;
+      padding: 6px 12px;
+    }
+
+    .btn-danger:hover {
+      background: #c82333;
+    }
+
+    #sql-editor {
+      width: 100%;
+      min-height: 200px;
+      padding: 12px;
+      border: 1px solid #ddd;
+      border-radius: 4px;
+      font-family: 'Courier New', monospace;
+      font-size: 14px;
+      resize: vertical;
+    }
+
+    #sql-editor:focus {
+      outline: none;
+      border-color: #007bff;
+    }
+
+    #results {
+      margin-top: 20px;
+    }
+
+    .history-section {
+      background: white;
+      border-radius: 8px;
+      padding: 20px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      max-height: 800px;
+      overflow-y: auto;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 15px;
+    }
+
+    .history-header h3 {
+      margin: 0;
+      font-size: 18px;
+    }
+
+    .history-list {
+      list-style: none;
+      padding: 0;
+      margin: 0;
+    }
+
+    .history-item {
+      padding: 10px;
+      margin-bottom: 8px;
+      background: #f8f9fa;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background 0.2s;
+      border-left: 3px solid #007bff;
+    }
+
+    .history-item:hover {
+      background: #e9ecef;
+    }
+
+    .history-item-sql {
+      font-family: 'Courier New', monospace;
+      font-size: 12px;
+      color: #495057;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .history-item-time {
+      font-size: 11px;
+      color: #6c757d;
+      margin-top: 4px;
+    }
+
+    .empty-history {
+      text-align: center;
+      color: #6c757d;
+      padding: 20px;
+      font-size: 14px;
+    }
+
+    @media (max-width: 768px) {
+      .main-layout {
+        grid-template-columns: 1fr;
+      }
+
+      .history-section {
+        max-height: 400px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="banner">
+      <h2>🔍 Read-Only SQL Query Console</h2>
+      <p><strong>Security Notice:</strong> This console is enabled only in development by default.</p>
+      <p>All queries are logged and restricted to read-only operations (SELECT statements only).</p>
+      <p>Multiple statements and write operations are blocked for security.</p>
+    </div>
+
+    <div class="main-layout">
+      <div class="editor-section">
+        <div class="editor-header">
+          <h3>SQL Editor</h3>
+          <div class="button-group">
+            <button id="clear-btn" class="btn-secondary">Clear</button>
+            <button id="run-btn" class="btn-primary">Run Query</button>
+          </div>
+        </div>
+
+        <textarea id="sql-editor" placeholder="Enter your SELECT query here...
+Example:
+SELECT * FROM users LIMIT 10;"></textarea>
+
+        <div id="results"></div>
+      </div>
+
+      <div class="history-section">
+        <div class="history-header">
+          <h3>Query History</h3>
+          <button id="clear-history-btn" class="btn-danger">Clear</button>
+        </div>
+        <ul id="history-list" class="history-list">
+          <li class="empty-history">No query history yet</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const HISTORY_KEY = 'query_console.history.v1';
+    const MAX_HISTORY = 20;
+
+    // Load history on page load
+    document.addEventListener('DOMContentLoaded', function() {
+      loadHistory();
+    });
+
+    // Run button handler
+    document.getElementById('run-btn').addEventListener('click', function() {
+      runQuery();
+    });
+
+    // Clear button handler
+    document.getElementById('clear-btn').addEventListener('click', function() {
+      document.getElementById('sql-editor').value = '';
+      document.getElementById('results').innerHTML = '';
+    });
+
+    // Clear history button handler
+    document.getElementById('clear-history-btn').addEventListener('click', function() {
+      if (confirm('Are you sure you want to clear all query history?')) {
+        localStorage.removeItem(HISTORY_KEY);
+        loadHistory();
+      }
+    });
+
+    // Ctrl/Cmd + Enter to run query
+    document.getElementById('sql-editor').addEventListener('keydown', function(e) {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        runQuery();
+      }
+    });
+
+    function runQuery() {
+      const sql = document.getElementById('sql-editor').value.trim();
+      
+      if (!sql) {
+        alert('Please enter a query');
+        return;
+      }
+
+      // Show loading state
+      const resultsDiv = document.getElementById('results');
+      resultsDiv.innerHTML = '<p style="color: #6c757d;">Executing query...</p>';
+
+      // Make request
+      fetch('<%= query_console.run_path %>', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'X-CSRF-Token': document.querySelector('meta[name="csrf-token"]')?.content || ''
+        },
+        body: 'sql=' + encodeURIComponent(sql)
+      })
+      .then(response => response.text())
+      .then(html => {
+        resultsDiv.innerHTML = html;
+        
+        // Save to history if query was successful (check if results contain error)
+        if (!html.includes('error-message')) {
+          saveToHistory(sql);
+        }
+      })
+      .catch(error => {
+        resultsDiv.innerHTML = '<div style="color: #dc3545; padding: 10px; background: #f8d7da; border-radius: 4px;">Request failed: ' + error.message + '</div>';
+      });
+    }
+
+    function saveToHistory(sql) {
+      let history = getHistory();
+      
+      // Add new query to beginning
+      history.unshift({
+        sql: sql,
+        timestamp: new Date().toISOString()
+      });
+
+      // Limit to MAX_HISTORY items
+      history = history.slice(0, MAX_HISTORY);
+
+      // Save back to localStorage
+      localStorage.setItem(HISTORY_KEY, JSON.stringify(history));
+      
+      // Reload history display
+      loadHistory();
+    }
+
+    function getHistory() {
+      try {
+        const data = localStorage.getItem(HISTORY_KEY);
+        return data ? JSON.parse(data) : [];
+      } catch (e) {
+        console.error('Failed to load history:', e);
+        return [];
+      }
+    }
+
+    function loadHistory() {
+      const history = getHistory();
+      const historyList = document.getElementById('history-list');
+      
+      if (history.length === 0) {
+        historyList.innerHTML = '<li class="empty-history">No query history yet</li>';
+        return;
+      }
+
+      historyList.innerHTML = history.map(item => {
+        const date = new Date(item.timestamp);
+        const timeStr = date.toLocaleString();
+        
+        return `
+          <li class="history-item" onclick="loadQueryFromHistory(this)" data-sql="${escapeHtml(item.sql)}">
+            <div class="history-item-sql">${escapeHtml(item.sql)}</div>
+            <div class="history-item-time">${timeStr}</div>
+          </li>
+        `;
+      }).join('');
+    }
+
+    function loadQueryFromHistory(element) {
+      const sql = element.getAttribute('data-sql');
+      document.getElementById('sql-editor').value = sql;
+      document.getElementById('sql-editor').focus();
+    }
+
+    function escapeHtml(text) {
+      const div = document.createElement('div');
+      div.textContent = text;
+      return div.innerHTML;
+    }
+  </script>
+</body>
+</html>

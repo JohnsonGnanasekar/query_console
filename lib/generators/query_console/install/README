@@ -1,0 +1,28 @@
+===============================================================================
+
+  QueryConsole has been installed!
+
+  Next steps:
+
+  1. Configure authorization in config/initializers/query_console.rb
+     You MUST set the authorize hook or access will be denied.
+
+  2. Mount the engine in your config/routes.rb:
+
+     mount QueryConsole::Engine, at: "/query_console"
+
+  3. Start your Rails server and visit:
+     http://localhost:3000/query_console
+
+  Security Notes:
+  - By default, only enabled in development environment
+  - Requires explicit authorization hook configuration
+  - All queries are logged with actor information
+  - Only SELECT/WITH queries allowed (read-only)
+  - Multiple statements blocked
+  - Results limited to prevent resource exhaustion
+
+  For more information, see:
+  https://github.com/JohnsonGnanasekar/query_console
+
+===============================================================================

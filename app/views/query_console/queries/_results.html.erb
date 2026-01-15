@@ -1,0 +1,172 @@
+<style>
+  .results-container {
+    margin-top: 20px;
+  }
+
+  .error-message {
+    background: #f8d7da;
+    color: #721c24;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #f5c6cb;
+    margin-bottom: 15px;
+  }
+
+  .success-message {
+    background: #d4edda;
+    color: #155724;
+    padding: 15px;
+    border-radius: 4px;
+    border: 1px solid #c3e6cb;
+    margin-bottom: 15px;
+  }
+
+  .metadata {
+    background: #e7f3ff;
+    padding: 12px;
+    border-radius: 4px;
+    margin-bottom: 15px;
+    font-size: 14px;
+    display: flex;
+    gap: 20px;
+    flex-wrap: wrap;
+  }
+
+  .metadata-item {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+  }
+
+  .metadata-label {
+    font-weight: 600;
+    color: #495057;
+  }
+
+  .metadata-value {
+    color: #007bff;
+  }
+
+  .warning-badge {
+    background: #fff3cd;
+    color: #856404;
+    padding: 4px 8px;
+    border-radius: 3px;
+    font-size: 12px;
+    font-weight: 600;
+  }
+
+  .table-wrapper {
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 4px;
+  }
+
+  .results-table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 14px;
+    background: white;
+  }
+
+  .results-table thead {
+    background: #f8f9fa;
+    position: sticky;
+    top: 0;
+  }
+
+  .results-table th {
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #495057;
+    border-bottom: 2px solid #dee2e6;
+    white-space: nowrap;
+  }
+
+  .results-table td {
+    padding: 10px 12px;
+    border-bottom: 1px solid #dee2e6;
+    color: #212529;
+  }
+
+  .results-table tbody tr:hover {
+    background: #f8f9fa;
+  }
+
+  .results-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .empty-results {
+    text-align: center;
+    padding: 40px;
+    color: #6c757d;
+  }
+
+  .null-value {
+    color: #999;
+    font-style: italic;
+  }
+</style>
+
+<div class="results-container">
+  <% if @result.failure? %>
+    <div class="error-message">
+      <strong>Error:</strong> <%= @result.error %>
+    </div>
+  <% else %>
+    <div class="success-message">
+      ✓ Query executed successfully
+    </div>
+
+    <div class="metadata">
+      <div class="metadata-item">
+        <span class="metadata-label">Execution Time:</span>
+        <span class="metadata-value"><%= @result.execution_time_ms %>ms</span>
+      </div>
+      <div class="metadata-item">
+        <span class="metadata-label">Rows:</span>
+        <span class="metadata-value"><%= @result.row_count_shown %></span>
+      </div>
+      <% if @result.truncated? %>
+        <div class="metadata-item">
+          <span class="warning-badge">⚠ Results limited to <%= QueryConsole.configuration.max_rows %> rows</span>
+        </div>
+      <% end %>
+    </div>
+
+    <% if @result.rows.empty? %>
+      <div class="empty-results">
+        No rows returned
+      </div>
+    <% else %>
+      <div class="table-wrapper">
+        <table class="results-table">
+          <thead>
+            <tr>
+              <% @result.columns.each do |column| %>
+                <th><%= column %></th>
+              <% end %>
+            </tr>
+          </thead>
+          <tbody>
+            <% @result.rows.each do |row| %>
+              <tr>
+                <% row.each do |value| %>
+                  <td>
+                    <% if value.nil? %>
+                      <span class="null-value">NULL</span>
+                    <% else %>
+                      <%= value %>
+                    <% end %>
+                  </td>
+                <% end %>
+              </tr>
+            <% end %>
+          </tbody>
+        </table>
+      </div>
+    <% end %>
+  <% end %>
+</div>
