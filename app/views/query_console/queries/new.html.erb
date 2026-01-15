@@ -4,8 +4,8 @@
   <title>Query Console</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <%= csrf_meta_tags %>
-  <%= turbo_include_tags %>
-  <%= stimulus_include_tags %>
+  <meta name="turbo-refresh-method" content="morph">
+  <meta name="turbo-refresh-scroll" content="preserve"
   
   <style>
     * {
@@ -370,19 +370,191 @@
     </div>
   </div>
 
-  <!-- Load Hotwire and Stimulus -->
+  <!-- Load Hotwire and Stimulus from CDN -->
   <script type="importmap">
     {
       "imports": {
-        "@hotwired/turbo-rails": "<%= asset_path('turbo.min.js') %>",
-        "@hotwired/stimulus": "<%= asset_path('stimulus.min.js') %>",
-        "query_console/application": "<%= asset_path('query_console/application.js') %>"
+        "@hotwired/turbo-rails": "https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js",
+        "@hotwired/stimulus": "https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/dist/stimulus.min.js"
       }
     }
   </script>
 
+  <!-- Load Stimulus controllers inline -->
   <script type="module">
-    import "query_console/application"
+    import { Application } from "@hotwired/stimulus"
+    import { Controller } from "@hotwired/stimulus"
+    
+    const application = Application.start()
+    
+    // Collapsible Controller
+    class CollapsibleController extends Controller {
+      static values = { key: String }
+      
+      connect() {
+        this.storageKey = `query_console.${this.keyValue}_collapsed`
+        this.loadState()
+      }
+      
+      toggle(event) {
+        event.preventDefault()
+        this.element.classList.toggle('collapsed')
+        
+        const isCollapsed = this.element.classList.contains('collapsed')
+        localStorage.setItem(this.storageKey, isCollapsed ? 'true' : 'false')
+        event.target.textContent = isCollapsed ? '▲' : '▼'
+      }
+      
+      loadState() {
+        const isCollapsed = localStorage.getItem(this.storageKey) === 'true'
+        if (isCollapsed) {
+          this.element.classList.add('collapsed')
+          const button = this.element.querySelector('.section-toggle, .banner-toggle')
+          if (button) button.textContent = '▲'
+        }
+      }
+    }
+    
+    // History Controller
+    class HistoryController extends Controller {
+      static targets = ["list"]
+      static values = {
+        storageKey: { type: String, default: "query_console.history.v1" },
+        maxItems: { type: Number, default: 20 }
+      }
+      
+      connect() {
+        this.loadHistory()
+        document.addEventListener('editor:executed', (e) => this.add(e))
+      }
+      
+      add(event) {
+        const history = this.getHistory()
+        history.unshift({
+          sql: event.detail.sql.trim(),
+          timestamp: event.detail.timestamp
+        })
+        
+        const trimmed = history.slice(0, this.maxItemsValue)
+        localStorage.setItem(this.storageKeyValue, JSON.stringify(trimmed))
+        this.renderHistory(trimmed)
+      }
+      
+      load(event) {
+        event.preventDefault()
+        const sql = event.currentTarget.dataset.sql
+        document.dispatchEvent(new CustomEvent('history:load', { detail: { sql } }))
+      }
+      
+      clear(event) {
+        event.preventDefault()
+        if (confirm("Clear all query history?")) {
+          localStorage.removeItem(this.storageKeyValue)
+          this.renderHistory([])
+        }
+      }
+      
+      loadHistory() {
+        this.renderHistory(this.getHistory())
+      }
+      
+      getHistory() {
+        const stored = localStorage.getItem(this.storageKeyValue)
+        return stored ? JSON.parse(stored) : []
+      }
+      
+      renderHistory(history) {
+        if (history.length === 0) {
+          this.listTarget.innerHTML = '<li class="empty-history">No query history yet</li>'
+          return
+        }
+        
+        this.listTarget.innerHTML = history.map(item => `
+          <li class="history-item">
+            <button type="button" class="history-item-button" 
+              data-action="click->history#load"
+              data-sql="${this.escapeHtml(item.sql)}">
+              <div class="history-item-sql">${this.escapeHtml(this.truncate(item.sql, 100))}</div>
+              <div class="history-item-time">${this.formatTime(item.timestamp)}</div>
+            </button>
+          </li>
+        `).join('')
+      }
+      
+      truncate(str, length) {
+        return str.length > length ? str.substring(0, length) + '...' : str
+      }
+      
+      formatTime(timestamp) {
+        const date = new Date(timestamp)
+        const diff = Date.now() - date
+        if (diff < 60000) return 'just now'
+        if (diff < 3600000) return `${Math.floor(diff/60000)}m ago`
+        if (diff < 86400000) return `${Math.floor(diff/3600000)}h ago`
+        return date.toLocaleDateString()
+      }
+      
+      escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
+      }
+    }
+    
+    // Editor Controller
+    class EditorController extends Controller {
+      static targets = ["textarea", "runButton"]
+      
+      connect() {
+        document.addEventListener('history:load', (e) => this.loadQuery(e.detail.sql))
+      }
+      
+      loadQuery(sql) {
+        this.textareaTarget.value = sql
+        this.textareaTarget.focus()
+        this.element.scrollIntoView({ behavior: 'smooth' })
+      }
+      
+      clear(event) {
+        event.preventDefault()
+        this.textareaTarget.value = ''
+        this.textareaTarget.focus()
+      }
+      
+      submit(event) {
+        const sql = this.textareaTarget.value.trim()
+        if (!sql) {
+          event.preventDefault()
+          alert('Please enter a SQL query')
+          return
+        }
+        
+        // Store SQL for after execution
+        window._lastExecutedSQL = sql
+        
+        this.runButtonTarget.disabled = true
+        this.runButtonTarget.textContent = 'Running...'
+      }
+      
+      querySuccess() {
+        this.runButtonTarget.disabled = false
+        this.runButtonTarget.textContent = 'Run Query'
+        
+        if (window._lastExecutedSQL) {
+          document.dispatchEvent(new CustomEvent('editor:executed', {
+            detail: {
+              sql: window._lastExecutedSQL,
+              timestamp: new Date().toISOString()
+            }
+          }))
+          delete window._lastExecutedSQL
+        }
+      }
+    }
+    
+    application.register("collapsible", CollapsibleController)
+    application.register("history", HistoryController)
+    application.register("editor", EditorController)
   </script>
 </body>
 </html>
