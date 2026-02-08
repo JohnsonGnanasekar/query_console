@@ -7,8 +7,8 @@
 
 A Rails engine that provides a secure, mountable web interface for running SQL queries against your application's database. Read-only by default with optional DML support.
 
-![Query Console Interface](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+Console+Interface)
-*Modern, responsive SQL query interface with schema explorer and query management*
+![Query Console Interface](docs/images/query-execution.png)
+*Modern, responsive SQL query interface with schema explorer, query management, and real-time execution*
 
 ## Table of Contents
 
@@ -52,23 +52,25 @@ A Rails engine that provides a secure, mountable web interface for running SQL q
 
 ## Screenshots
 
-### Query Execution
-![Query Results](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+Execution+%26+Results)
-*Execute SQL queries with real-time results, execution time, and row counts*
-
-### DML Confirmation Dialog
-![DML Confirmation](https://via.placeholder.com/600x300/ef4444/ffffff?text=DML+Confirmation+Dialog)
-*Pre-execution confirmation for INSERT, UPDATE, DELETE operations with clear warnings*
+### Query Execution with Results
+![Query Execution](docs/images/query-execution.png)
+*Execute SQL queries with real-time results, execution time, and row counts displayed in a clean, scrollable table*
 
 ### Schema Explorer
-![Schema Browser](https://via.placeholder.com/800x400/1e293b/ffffff?text=Schema+Explorer)
-*Browse database tables, columns, types with quick-action buttons*
+![Schema Browser](docs/images/schema-explorer.png)
+*Browse database tables, columns with data types, nullable status, and quick-action buttons (Insert, WHERE, Copy Table Name)*
 
-### Query History & Management
-![Query History](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+History+%26+Saved+Queries)
-*Access recent queries and manage saved queries with tags and organization*
+### DML Operations with Safety Features
+![DML Results Banner](docs/images/dml-results.png)
+*DML operations show "Data Modified" banner, accurate "Rows Affected" count, and permanent change confirmation. A browser confirmation dialog appears before execution (not shown - browser native UI).*
 
-> **Note for Contributors**: Replace placeholder images with actual screenshots by adding PNG files to a `docs/images/` directory and updating the links above.
+### Query History
+![Query History](docs/images/query-history.png)
+*Access recent queries with timestamps - click any query to load it into the editor instantly*
+
+### Saved Queries Management
+![Saved Queries](docs/images/saved-queries.png)
+*Save important queries with names and tags, then load, export, or import them with one click*
 
 ## Security Features
 
