@@ -6,8 +6,8 @@ Gem::Specification.new do |spec|
   spec.authors     = ["Johnson Gnanasekar"]
   spec.email       = ["johnson@example.com"]
   spec.homepage    = "https://github.com/JohnsonGnanasekar/query_console"
-  spec.summary     = "Mountable Rails engine for secure read-only SQL queries"
-  spec.description = "A Rails engine that provides a web-based SQL query console with read-only enforcement, authorization hooks, and audit logging."
+  spec.summary     = "Secure, mountable Rails SQL console with read-only enforcement and optional DML support"
+  spec.description = "A Rails engine providing a web-based SQL query console with security-first design: read-only by default, optional DML (INSERT/UPDATE/DELETE) with confirmation dialogs, flexible authorization, comprehensive audit logging, and query execution plans."
   spec.license     = "MIT"
 
   spec.metadata["homepage_uri"] = spec.homepage
