@@ -120,12 +120,33 @@ export default class extends Controller {
     }
   }
 
+  // Check if query is a DML operation
+  isDmlQuery(sql) {
+    const trimmed = sql.trim().toLowerCase()
+    return /^(insert|update|delete|merge)\b/.test(trimmed)
+  }
+
   // Run query
   runQuery() {
     const sql = this.getSql().trim()
     if (!sql) {
       alert('Please enter a SQL query')
       return
+    }
+    
+    // Check if it's a DML query and confirm with user
+    if (this.isDmlQuery(sql)) {
+      const confirmed = confirm(
+        '⚠️ DATA MODIFICATION WARNING\n\n' +
+        'This query will INSERT, UPDATE, or DELETE data.\n\n' +
+        '• All changes are PERMANENT and cannot be undone\n' +
+        '• All operations are logged\n\n' +
+        'Do you want to proceed?'
+      )
+      
+      if (!confirmed) {
+        return // User cancelled
+      }
     }
     
     // Clear explain results when running query

@@ -9,6 +9,7 @@ module QueryConsole
                   :allowed_starts_with,
                   :enable_explain,
                   :enable_explain_analyze,
+                  :enable_dml,
                   :schema_explorer,
                   :schema_cache_seconds,
                   :schema_table_denylist,
@@ -32,6 +33,7 @@ module QueryConsole
       # v0.2.0 additions
       @enable_explain = true
       @enable_explain_analyze = false # ANALYZE can be expensive, disabled by default
+      @enable_dml = false # DML queries disabled by default for safety
       @schema_explorer = true
       @schema_cache_seconds = 60
       @schema_table_denylist = ["schema_migrations", "ar_internal_metadata"]

@@ -78,8 +78,65 @@ RSpec.describe QueryConsole::Runner do
       end
     end
 
+    context 'with DML queries (when enabled)' do
+      before do
+        QueryConsole.configuration.enable_dml = true
+      end
+
+      after do
+        QueryConsole.configuration.enable_dml = false
+      end
+
+      it 'executes INSERT and tracks affected rows' do
+        runner = described_class.new("INSERT INTO test_users (name, email, active) VALUES ('Dave', 'dave@example.com', 1)")
+        result = runner.execute
+
+        expect(result).to be_success
+        expect(result.dml?).to be true
+        expect(result.rows_affected).to eq(1)
+        expect(result.rows).to be_empty
+      end
+
+      it 'executes UPDATE and tracks affected rows' do
+        runner = described_class.new("UPDATE test_users SET active = 0 WHERE name = 'Alice'")
+        result = runner.execute
+
+        expect(result).to be_success
+        expect(result.dml?).to be true
+        expect(result.rows_affected).to eq(1)
+      end
+
+      it 'executes DELETE and tracks affected rows' do
+        runner = described_class.new("DELETE FROM test_users WHERE active = 0")
+        result = runner.execute
+
+        expect(result).to be_success
+        expect(result.dml?).to be true
+        expect(result.rows_affected).to eq(1) # Charlie is inactive
+      end
+
+      it 'tracks zero affected rows when no matches' do
+        runner = described_class.new("UPDATE test_users SET active = 0 WHERE name = 'Nonexistent'")
+        result = runner.execute
+
+        expect(result).to be_success
+        expect(result.dml?).to be true
+        expect(result.rows_affected).to eq(0)
+      end
+
+      it 'tracks multiple affected rows' do
+        runner = described_class.new("UPDATE test_users SET active = 0")
+        result = runner.execute
+
+        expect(result).to be_success
+        expect(result.dml?).to be true
+        expect(result.rows_affected).to eq(3) # All 3 users
+      end
+    end
+
     context 'with validation errors' do
-      it 'returns error for UPDATE queries' do
+      it 'returns error for UPDATE queries when DML disabled' do
+        QueryConsole.configuration.enable_dml = false
         runner = described_class.new('UPDATE test_users SET name = "hacker"')
         result = runner.execute
 
@@ -87,7 +144,8 @@ RSpec.describe QueryConsole::Runner do
         expect(result.error).to include('Query must start with one of')
       end
 
-      it 'returns error for DELETE queries' do
+      it 'returns error for DELETE queries when DML disabled' do
+        QueryConsole.configuration.enable_dml = false
         runner = described_class.new('DELETE FROM test_users')
         result = runner.execute
 

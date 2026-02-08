@@ -15,7 +15,9 @@ module QueryConsole
         actor: resolved_actor,
         sql: sql.to_s.strip,
         duration_ms: result.execution_time_ms,
-        status: result.success? ? "ok" : "error"
+        status: result.success? ? "ok" : "error",
+        query_type: determine_query_type(sql),
+        is_dml: is_dml_query?(sql)
       }
 
       # Add row count if available (for QueryResult)
@@ -36,6 +38,22 @@ module QueryConsole
       Rails.logger.info(log_data.to_json)
     end
 
+    def self.is_dml_query?(sql)
+      sql.to_s.strip.downcase.match?(/\A(insert|update|delete|merge)\b/)
+    end
+
+    def self.determine_query_type(sql)
+      case sql.to_s.strip.downcase
+      when /\Aselect\b/ then "SELECT"
+      when /\Awith\b/ then "WITH"
+      when /\Ainsert\b/ then "INSERT"
+      when /\Aupdate\b/ then "UPDATE"
+      when /\Adelete\b/ then "DELETE"
+      when /\Amerge\b/ then "MERGE"
+      else "UNKNOWN"
+      end
+    end
+
     def self.determine_error_class(error_message)
       case error_message
       when /timeout/i
@@ -46,6 +64,10 @@ module QueryConsole
         "SecurityError"
       when /must start with/i
         "ValidationError"
+      when /cannot delete/i, /cannot update/i, /cannot insert/i
+        "DMLError"
+      when /foreign key constraint/i, /constraint.*violated/i
+        "ConstraintError"
       else
         "QueryError"
       end

@@ -154,5 +154,52 @@ RSpec.describe QueryConsole::SqlLimiter do
         expect(result.sql).to eq(sql)
       end
     end
+
+    context 'with DML queries' do
+      it 'does not wrap INSERT queries' do
+        sql = "INSERT INTO users (name, email) VALUES ('Test', 'test@example.com')"
+        limiter = described_class.new(sql, max_rows)
+        result = limiter.apply_limit
+
+        expect(result.sql).to eq(sql)
+        expect(result).not_to be_truncated
+      end
+
+      it 'does not wrap UPDATE queries' do
+        sql = 'UPDATE users SET active = true WHERE id = 1'
+        limiter = described_class.new(sql, max_rows)
+        result = limiter.apply_limit
+
+        expect(result.sql).to eq(sql)
+        expect(result).not_to be_truncated
+      end
+
+      it 'does not wrap DELETE queries' do
+        sql = 'DELETE FROM users WHERE id = 999'
+        limiter = described_class.new(sql, max_rows)
+        result = limiter.apply_limit
+
+        expect(result.sql).to eq(sql)
+        expect(result).not_to be_truncated
+      end
+
+      it 'does not wrap MERGE queries' do
+        sql = 'MERGE INTO users USING new_users ON users.id = new_users.id'
+        limiter = described_class.new(sql, max_rows)
+        result = limiter.apply_limit
+
+        expect(result.sql).to eq(sql)
+        expect(result).not_to be_truncated
+      end
+
+      it 'handles case-insensitive DML queries' do
+        sql = 'insert into users (name) VALUES ("Test")'
+        limiter = described_class.new(sql, max_rows)
+        result = limiter.apply_limit
+
+        expect(result.sql).to eq(sql)
+        expect(result).not_to be_truncated
+      end
+    end
   end
 end

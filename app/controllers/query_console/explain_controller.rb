@@ -9,11 +9,11 @@ module QueryConsole
         @result = ExplainRunner::ExplainResult.new(error: "Query cannot be empty")
         respond_to do |format|
           format.turbo_stream do
-            render turbo_stream: turbo_stream.replace(
-              "explain-results",
-              partial: "explain/results",
-              locals: { result: @result }
-            )
+        render turbo_stream: turbo_stream.replace(
+          "explain-results",
+          partial: "query_console/explain/results",
+          locals: { result: @result }
+        )
           end
           format.html { render "explain/_results", layout: false, locals: { result: @result } }
         end

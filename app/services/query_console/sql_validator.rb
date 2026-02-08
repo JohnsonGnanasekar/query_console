@@ -1,12 +1,13 @@
 module QueryConsole
   class SqlValidator
     class ValidationResult
-      attr_reader :valid, :error, :sanitized_sql
+      attr_reader :valid, :error, :sanitized_sql, :is_dml
 
-      def initialize(valid:, sanitized_sql: nil, error: nil)
+      def initialize(valid:, sanitized_sql: nil, error: nil, is_dml: false)
         @valid = valid
         @sanitized_sql = sanitized_sql
         @error = error
+        @is_dml = is_dml
       end
 
       def valid?
@@ -15,6 +16,10 @@ module QueryConsole
 
       def invalid?
         !@valid
+      end
+
+      def dml?
+        @is_dml
       end
     end
 
@@ -41,16 +46,35 @@ module QueryConsole
 
       # Check if query starts with allowed keywords
       normalized_start = sanitized.downcase
-      unless @config.allowed_starts_with.any? { |keyword| normalized_start.start_with?(keyword) }
+      
+      # Define DML-specific keywords that are conditionally allowed
+      dml_keywords = %w[insert update delete merge]
+      
+      # Expand allowed_starts_with if DML is enabled
+      effective_allowed = if @config.enable_dml
+        @config.allowed_starts_with + dml_keywords
+      else
+        @config.allowed_starts_with
+      end
+      
+      unless effective_allowed.any? { |keyword| normalized_start.start_with?(keyword) }
         return ValidationResult.new(
           valid: false,
-          error: "Query must start with one of: #{@config.allowed_starts_with.join(', ').upcase}"
+          error: "Query must start with one of: #{effective_allowed.join(', ').upcase}"
         )
       end
 
       # Check for forbidden keywords
       normalized_query = sanitized.downcase
-      forbidden = @config.forbidden_keywords.find do |keyword|
+      
+      # Filter forbidden keywords based on DML enablement
+      effective_forbidden = if @config.enable_dml
+        @config.forbidden_keywords.reject { |kw| dml_keywords.include?(kw) || kw == 'replace' || kw == 'into' }
+      else
+        @config.forbidden_keywords
+      end
+      
+      forbidden = effective_forbidden.find do |keyword|
         # Match whole words to avoid false positives (e.g., "updates" table name)
         normalized_query.match?(/\b#{Regexp.escape(keyword.downcase)}\b/)
       end
@@ -62,7 +86,10 @@ module QueryConsole
         )
       end
 
-      ValidationResult.new(valid: true, sanitized_sql: sanitized)
+      # Detect if this is a DML query
+      is_dml_query = sanitized.downcase.match?(/\A(insert|update|delete|merge)\b/)
+
+      ValidationResult.new(valid: true, sanitized_sql: sanitized, is_dml: is_dml_query)
     end
 
     private

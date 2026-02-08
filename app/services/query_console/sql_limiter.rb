@@ -20,6 +20,11 @@ module QueryConsole
     end
 
     def apply_limit
+      # Skip limiting for DML queries (INSERT, UPDATE, DELETE, MERGE)
+      if is_dml_query?
+        return LimitResult.new(sql: @sql, truncated: false)
+      end
+      
       # Check if query already has a LIMIT clause
       if sql_has_limit?
         LimitResult.new(sql: @sql, truncated: false)
@@ -32,6 +37,11 @@ module QueryConsole
     private
 
     attr_reader :sql, :max_rows, :config
+
+    def is_dml_query?
+      # Check if query is a DML operation (INSERT, UPDATE, DELETE, MERGE)
+      @sql.strip.downcase.match?(/\A(insert|update|delete|merge)\b/)
+    end
 
     def sql_has_limit?
       # Check for LIMIT clause (case-insensitive)

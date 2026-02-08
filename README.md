@@ -129,6 +129,89 @@ config.authorize = ->(_controller) { true }
 | `timeout_ms` | `3000` | Query timeout in milliseconds |
 | `forbidden_keywords` | See code | SQL keywords that are blocked |
 | `allowed_starts_with` | `["select", "with"]` | Allowed query starting keywords |
+| `enable_dml` | `false` | Enable DML queries (INSERT, UPDATE, DELETE) |
+
+### DML (Data Manipulation Language) Support
+
+By default, Query Console is **read-only**. To enable DML operations (INSERT, UPDATE, DELETE):
+
+```ruby
+QueryConsole.configure do |config|
+  config.enable_dml = true
+  
+  # Recommended: Restrict to specific environments
+  config.enabled_environments = ["development", "staging"]
+end
+```
+
+#### Important Security Notes
+
+- **DML is disabled by default** for safety
+- When enabled, INSERT, UPDATE, DELETE, and MERGE queries are permitted
+- All DML operations are logged with actor information and query type
+- No transaction support - queries auto-commit immediately
+- Consider additional application-level authorization for production use
+
+#### What's Still Blocked
+
+Even with DML enabled, these operations remain **forbidden**:
+- `DROP`, `ALTER`, `CREATE` (schema changes)
+- `TRUNCATE` (bulk deletion)
+- `GRANT`, `REVOKE` (permission changes)
+- `EXECUTE`, `EXEC` (stored procedures)
+- `TRANSACTION`, `COMMIT`, `ROLLBACK` (manual transaction control)
+- System procedures (`sp_`, `xp_`)
+
+#### UI Behavior with DML
+
+When DML is enabled and a DML query is detected:
+- **Before execution**: A confirmation dialog appears with a clear warning about permanent data modifications
+- User must explicitly confirm to proceed (can click "Cancel" to abort)
+- **After execution**: An informational banner shows: "ℹ️ Data Modified: This query has modified the database"
+- **Rows Affected** count is displayed (e.g., "3 row(s) affected") showing how many rows were inserted/updated/deleted
+- The security banner reflects DML status
+- All changes are permanent and logged
+
+#### Database Support
+
+DML operations work on all supported databases:
+- **SQLite**: INSERT, UPDATE, DELETE
+- **PostgreSQL**: INSERT, UPDATE, DELETE, MERGE (via INSERT ... ON CONFLICT)
+- **MySQL**: INSERT, UPDATE, DELETE, REPLACE
+
+#### Enhanced Audit Logging
+
+DML queries are logged with additional metadata:
+
+```ruby
+{
+  component: "query_console",
+  actor: "user@example.com",
+  sql: "UPDATE users SET active = true WHERE id = 123",
+  duration_ms: 12.5,
+  rows: 1,
+  status: "ok",
+  query_type: "UPDATE",     # NEW: Query type classification
+  is_dml: true              # NEW: DML flag
+}
+```
+
+#### Example DML Queries
+
+```sql
+-- Insert a new record
+INSERT INTO users (name, email) VALUES ('John Doe', 'john@example.com');
+
+-- Update existing records
+UPDATE users SET active = true WHERE id = 123;
+
+-- Delete specific records
+DELETE FROM sessions WHERE expires_at < NOW();
+
+-- PostgreSQL upsert
+INSERT INTO settings (key, value) VALUES ('theme', 'dark')
+ON CONFLICT (key) DO UPDATE SET value = 'dark';
+```
 
 ## Mounting
 
@@ -166,13 +249,16 @@ Then visit: `http://localhost:3000/query_console`
 - `WITH active_users AS (SELECT * FROM users WHERE active = true) SELECT * FROM active_users`
 - Queries with JOINs, ORDER BY, GROUP BY, etc.
 
-❌ **Blocked**:
-- `UPDATE users SET name = 'test'`
-- `DELETE FROM users`
-- `INSERT INTO users VALUES (...)`
-- `DROP TABLE users`
-- `SELECT * FROM users; DELETE FROM users` (multiple statements)
+❌ **Blocked** (by default):
+- `UPDATE users SET name = 'test'` (unless `enable_dml = true`)
+- `DELETE FROM users` (unless `enable_dml = true`)
+- `INSERT INTO users VALUES (...)` (unless `enable_dml = true`)
+- `DROP TABLE users` (always blocked)
+- `TRUNCATE TABLE users` (always blocked)
+- `SELECT * FROM users; DELETE FROM users` (multiple statements always blocked)
 - Any query containing forbidden keywords
+
+**Note**: With `config.enable_dml = true`, INSERT, UPDATE, DELETE, and MERGE queries become allowed.
 
 ## Example Queries
 

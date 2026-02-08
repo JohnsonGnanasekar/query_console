@@ -21,6 +21,7 @@ module QueryConsole
       # Execute the query
       runner = Runner.new(sql)
       @result = runner.execute
+      @is_dml = @result.dml?
 
       # Log the query execution
       AuditLogger.log_query(
@@ -35,7 +36,7 @@ module QueryConsole
           render turbo_stream: turbo_stream.replace(
             "query-results",
             partial: "results",
-            locals: { result: @result }
+            locals: { result: @result, is_dml: @is_dml }
           )
         end
         format.html { render :_results, layout: false }

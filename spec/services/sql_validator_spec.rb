@@ -250,5 +250,168 @@ RSpec.describe QueryConsole::SqlValidator do
         expect(result.error).to include('Query must start with one of')
       end
     end
+
+    context 'with DML enabled (enable_dml = true)' do
+      before do
+        config.enable_dml = true
+      end
+
+      after do
+        config.enable_dml = false
+      end
+
+      it 'allows INSERT queries' do
+        validator = described_class.new("INSERT INTO users (name, email) VALUES ('John', 'john@example.com')")
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+        expect(result.sanitized_sql).to include('INSERT INTO users')
+      end
+
+      it 'allows UPDATE queries' do
+        validator = described_class.new('UPDATE users SET active = true WHERE id = 1')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+        expect(result.sanitized_sql).to include('UPDATE users')
+      end
+
+      it 'allows DELETE queries' do
+        validator = described_class.new('DELETE FROM sessions WHERE expires_at < NOW()')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+        expect(result.sanitized_sql).to include('DELETE FROM sessions')
+      end
+
+      it 'allows MERGE queries' do
+        validator = described_class.new('MERGE INTO users USING new_users ON users.id = new_users.id')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+      end
+
+      it 'still blocks DROP queries' do
+        validator = described_class.new('DROP TABLE users')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'still blocks TRUNCATE queries' do
+        validator = described_class.new('TRUNCATE TABLE users')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'still blocks ALTER queries' do
+        validator = described_class.new('ALTER TABLE users ADD COLUMN hacked BOOLEAN')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'still blocks CREATE queries' do
+        validator = described_class.new('CREATE TABLE malicious (id INT)')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'still blocks GRANT queries' do
+        validator = described_class.new('GRANT ALL ON users TO hacker')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'still blocks EXECUTE queries' do
+        validator = described_class.new('EXECUTE sp_something')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'marks SELECT queries as non-DML' do
+        validator = described_class.new('SELECT * FROM users')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).not_to be_dml
+      end
+
+      it 'marks WITH queries as non-DML' do
+        validator = described_class.new('WITH temp AS (SELECT 1) SELECT * FROM temp')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).not_to be_dml
+      end
+    end
+
+    context 'with DML disabled (enable_dml = false)' do
+      before do
+        config.enable_dml = false
+      end
+
+      it 'blocks INSERT queries' do
+        validator = described_class.new("INSERT INTO users (name) VALUES ('test')")
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'blocks UPDATE queries' do
+        validator = described_class.new('UPDATE users SET name = "test" WHERE id = 1')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'blocks DELETE queries' do
+        validator = described_class.new('DELETE FROM users WHERE id = 1')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'blocks MERGE queries' do
+        validator = described_class.new('MERGE INTO users USING new_users ON users.id = new_users.id')
+        result = validator.validate
+
+        expect(result).to be_invalid
+        expect(result.error).to include('Query must start with one of')
+      end
+
+      it 'allows SELECT queries' do
+        validator = described_class.new('SELECT * FROM users')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).not_to be_dml
+      end
+
+      it 'allows WITH queries' do
+        validator = described_class.new('WITH temp AS (SELECT 1) SELECT * FROM temp')
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).not_to be_dml
+      end
+    end
   end
 end

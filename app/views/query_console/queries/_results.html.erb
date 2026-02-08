@@ -116,10 +116,33 @@
       color: #999;
       font-style: italic;
     }
+
+    .dml-warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      border-radius: 4px;
+    }
+
+    .dml-warning-icon {
+      color: #ff6b6b;
+      font-weight: bold;
+      margin-right: 8px;
+    }
   </style>
 
   <div class="results-container">
     <% result_to_render = local_assigns[:result] || @result %>
+    <% is_dml_result = local_assigns[:is_dml] || @is_dml %>
+    
+    <% if is_dml_result %>
+      <div class="dml-warning">
+        <span class="dml-warning-icon">ℹ️</span>
+        <strong>Data Modified:</strong> 
+        This query has modified the database. All changes are logged.
+      </div>
+    <% end %>
     
     <% if result_to_render.error %>
       <div class="error-message">
@@ -136,8 +159,13 @@
           <span class="metadata-value"><%= result_to_render.execution_time_ms %>ms</span>
         </div>
         <div class="metadata-item">
-          <span class="metadata-label">Rows:</span>
-          <span class="metadata-value"><%= result_to_render.row_count_shown %></span>
+          <% if is_dml_result && result_to_render.rows_affected %>
+            <span class="metadata-label">Rows Affected:</span>
+            <span class="metadata-value"><%= result_to_render.rows_affected %></span>
+          <% else %>
+            <span class="metadata-label">Rows:</span>
+            <span class="metadata-value"><%= result_to_render.row_count_shown %></span>
+          <% end %>
         </div>
         <% if result_to_render.truncated %>
           <div class="metadata-item">
@@ -148,7 +176,11 @@
 
       <% if result_to_render.rows.empty? %>
         <div class="empty-results">
-          No rows returned
+          <% if is_dml_result && result_to_render.rows_affected %>
+            <%= result_to_render.rows_affected %> row(s) affected
+          <% else %>
+            No rows returned
+          <% end %>
         </div>
       <% else %>
         <div class="table-wrapper">

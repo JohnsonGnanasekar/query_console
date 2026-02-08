@@ -124,6 +124,37 @@
       background: #545b62;
     }
 
+    /* DML Warning Styles */
+    .btn-dml {
+      background-color: #ff6b6b;
+      color: white;
+      border: none;
+      padding: 8px 16px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 500;
+    }
+
+    .btn-dml:hover {
+      background-color: #ff5252;
+    }
+
+    .dml-warning {
+      background-color: #fff3cd;
+      border-left: 4px solid #ffc107;
+      padding: 12px 16px;
+      margin-bottom: 16px;
+      margin-top: 16px;
+      border-radius: 4px;
+    }
+
+    .dml-warning-icon {
+      color: #ff6b6b;
+      font-weight: bold;
+      margin-right: 8px;
+    }
+
     /* SQL Editor (CodeMirror) */
     .sql-editor-container {
       width: 100%;
@@ -525,11 +556,31 @@
         }
       }
       
+      isDmlQuery(sql) {
+        const trimmed = sql.trim().toLowerCase()
+        return /^(insert|update|delete|merge)\b/.test(trimmed)
+      }
+      
       runQuery() {
         const sql = this.getSql().trim()
         if (!sql) {
           alert('Please enter a SQL query')
           return
+        }
+        
+        // Check if it's a DML query and confirm with user
+        if (this.isDmlQuery(sql)) {
+          const confirmed = confirm(
+            '⚠️ DATA MODIFICATION WARNING\n\n' +
+            'This query will INSERT, UPDATE, or DELETE data.\n\n' +
+            '• All changes are PERMANENT and cannot be undone\n' +
+            '• All operations are logged\n\n' +
+            'Do you want to proceed?'
+          )
+          
+          if (!confirmed) {
+            return // User cancelled
+          }
         }
         
         // Clear explain results when running query
@@ -908,9 +959,16 @@
   <div class="container">
     <!-- Banner -->
     <div class="banner" data-controller="collapsible" data-collapsible-key-value="banner">
-      <h2>🔍 Read-Only SQL Query Console <small>v0.2.0</small></h2>
+      <h2>🔍 <% if QueryConsole.configuration.enable_dml %>SQL Query Console<% else %>Read-Only SQL Query Console<% end %> <small>v0.2.0</small></h2>
       <div class="banner-content">
-        <p><strong>Security:</strong> Read-only SELECT & WITH queries only. All queries are logged.</p>
+        <p>
+          <strong>Security:</strong> 
+          <% if QueryConsole.configuration.enable_dml %>
+            DML queries (INSERT, UPDATE, DELETE) are enabled. All queries are logged. Use with caution.
+          <% else %>
+            Read-only SELECT & WITH queries only. All queries are logged.
+          <% end %>
+        </p>
         <p><strong>New in v0.2.0:</strong> EXPLAIN query plans, Interactive Schema Explorer with quick insert buttons, Saved Queries with tags, import/export, and localStorage-based Query History!</p>
       </div>
       <button class="section-toggle" data-action="click->collapsible#toggle" type="button">▼</button>
