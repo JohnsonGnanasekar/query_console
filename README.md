@@ -4,23 +4,29 @@ A Rails engine that provides a secure, mountable web interface for running read-
 
 ## Features
 
-### Core Features (v0.1.0)
-- 🔒 **Security First**: Read-only queries enforced at multiple levels
+### Security & Control
+- 🔒 **Security First**: Read-only by default with multi-layer enforcement
 - 🚦 **Environment Gating**: Disabled by default in production
 - 🔑 **Flexible Authorization**: Integrate with your existing auth system
-- 📊 **Modern UI**: Clean, responsive interface with query history
-- 📝 **Audit Logging**: All queries logged with actor information
 - ⚡ **Resource Protection**: Configurable row limits and query timeouts
-- 💾 **Client-Side History**: Query history stored in browser localStorage
-- ⚡ **Hotwire-Powered**: Uses Turbo Frames and Stimulus for smooth, SPA-like experience
-- 🎨 **Zero Build Step**: CDN-hosted Hotwire, no asset compilation needed
+- 📝 **Comprehensive Audit Logging**: All queries logged with actor information and metadata
+- 🔐 **Optional DML Support**: Enable INSERT/UPDATE/DELETE with confirmation dialogs
 
-### New in v0.2.0 🚀
+### Query Execution
 - 📊 **EXPLAIN Query Plans**: Analyze query execution plans for performance debugging
+- ✅ **Smart Validation**: SQL validation with keyword blocking and statement isolation
+- 🎯 **Accurate Results**: Proper row counts for both SELECT and DML operations
+- ⏱️ **Query Timeout**: Configurable timeout to prevent long-running queries
+
+### User Interface
+- 📊 **Modern UI**: Clean, responsive interface with real-time updates
 - 🗂️ **Schema Explorer**: Browse tables, columns, types with quick actions
-- 💾 **Saved Queries**: Save, organize, import/export your important queries (client-side)
-- 🎨 **Tabbed UI**: Switch between History and Schema views seamlessly
+- 💾 **Query Management**: Save, organize, import/export queries (client-side)
+- 📜 **Query History**: Client-side history stored in browser localStorage
+- 🎨 **Tabbed Navigation**: Switch between History, Schema, and Saved Queries seamlessly
 - 🔍 **Quick Actions**: Generate queries from schema, copy names, insert WHERE clauses
+- ⚡ **Hotwire-Powered**: Turbo Frames and Stimulus for smooth, SPA-like experience
+- 🎨 **Zero Build Step**: CDN-hosted dependencies, no asset compilation needed
 
 ## Security Features
 
@@ -28,12 +34,13 @@ QueryConsole implements multiple layers of security:
 
 1. **Environment Gating**: Only enabled in configured environments (development by default)
 2. **Authorization Hook**: Requires explicit authorization configuration
-3. **SQL Validation**: Only SELECT and WITH (CTE) queries allowed
-4. **Keyword Blocking**: Blocks all write operations (UPDATE, DELETE, INSERT, DROP, etc.)
-5. **Statement Isolation**: Prevents multiple statement execution
-6. **Row Limiting**: Automatic result limiting to prevent resource exhaustion
-7. **Query Timeout**: Configurable timeout to prevent long-running queries
-8. **Audit Trail**: All queries logged with structured data
+3. **Read-Only by Default**: Only SELECT and WITH (CTE) queries allowed by default
+4. **Optional DML with Safeguards**: INSERT/UPDATE/DELETE available when explicitly enabled, with mandatory user confirmation dialogs
+5. **Keyword Blocking**: Always blocks DDL operations (DROP, ALTER, CREATE, TRUNCATE, etc.)
+6. **Statement Isolation**: Prevents multiple statement execution
+7. **Row Limiting**: Automatic result limiting to prevent resource exhaustion
+8. **Query Timeout**: Configurable timeout to prevent long-running queries
+9. **Comprehensive Audit Trail**: All queries logged with actor, query type, and execution metadata
 
 ## Installation
 
