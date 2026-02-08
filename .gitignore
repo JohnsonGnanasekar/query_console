@@ -12,3 +12,4 @@ spec/examples.txt
 *.gem
 .DS_Store
 coverage/
+.playwright-mcp/
