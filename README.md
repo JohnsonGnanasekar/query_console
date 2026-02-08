@@ -1,6 +1,28 @@
 # QueryConsole
 
-A Rails engine that provides a secure, mountable web interface for running read-only SQL queries against your application's database.
+[![Gem Version](https://badge.fury.io/rb/query_console.svg)](https://badge.fury.io/rb/query_console)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg)](MIT-LICENSE)
+[![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.1-ruby.svg)](https://www.ruby-lang.org)
+[![Rails](https://img.shields.io/badge/rails-%3E%3D%207.0-red.svg)](https://rubyonrails.org)
+
+A Rails engine that provides a secure, mountable web interface for running SQL queries against your application's database. Read-only by default with optional DML support.
+
+![Query Console Interface](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+Console+Interface)
+*Modern, responsive SQL query interface with schema explorer and query management*
+
+## Table of Contents
+
+- [Features](#features)
+- [Screenshots](#screenshots)
+- [Security Features](#security-features)
+- [Installation](#installation)
+- [Configuration](#configuration)
+- [Usage](#usage)
+- [Security Considerations](#security-considerations)
+- [Development](#development)
+- [Troubleshooting](#troubleshooting)
+- [Contributing](#contributing)
+- [Changelog](#changelog)
 
 ## Features
 
@@ -27,6 +49,26 @@ A Rails engine that provides a secure, mountable web interface for running read-
 - 🔍 **Quick Actions**: Generate queries from schema, copy names, insert WHERE clauses
 - ⚡ **Hotwire-Powered**: Turbo Frames and Stimulus for smooth, SPA-like experience
 - 🎨 **Zero Build Step**: CDN-hosted dependencies, no asset compilation needed
+
+## Screenshots
+
+### Query Execution
+![Query Results](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+Execution+%26+Results)
+*Execute SQL queries with real-time results, execution time, and row counts*
+
+### DML Confirmation Dialog
+![DML Confirmation](https://via.placeholder.com/600x300/ef4444/ffffff?text=DML+Confirmation+Dialog)
+*Pre-execution confirmation for INSERT, UPDATE, DELETE operations with clear warnings*
+
+### Schema Explorer
+![Schema Browser](https://via.placeholder.com/800x400/1e293b/ffffff?text=Schema+Explorer)
+*Browse database tables, columns, types with quick-action buttons*
+
+### Query History & Management
+![Query History](https://via.placeholder.com/800x400/1e293b/ffffff?text=Query+History+%26+Saved+Queries)
+*Access recent queries and manage saved queries with tags and organization*
+
+> **Note for Contributors**: Replace placeholder images with actual screenshots by adding PNG files to a `docs/images/` directory and updating the links above.
 
 ## Security Features
 
@@ -86,7 +128,7 @@ QueryConsole.configure do |config|
   # config.max_rows = 1000
   # config.timeout_ms = 5000
   
-  # v0.2.0+ Features
+  # Advanced Features
   # EXPLAIN feature (default: enabled)
   # config.enable_explain = true
   # config.enable_explain_analyze = false  # Disabled by default for safety
@@ -137,6 +179,10 @@ config.authorize = ->(_controller) { true }
 | `forbidden_keywords` | See code | SQL keywords that are blocked |
 | `allowed_starts_with` | `["select", "with"]` | Allowed query starting keywords |
 | `enable_dml` | `false` | Enable DML queries (INSERT, UPDATE, DELETE) |
+| `enable_explain` | `true` | Enable EXPLAIN query plans |
+| `enable_explain_analyze` | `false` | Enable EXPLAIN ANALYZE (use with caution) |
+| `schema_explorer` | `true` | Enable schema browser |
+| `schema_cache_seconds` | `60` | Schema cache duration in seconds |
 
 ### DML (Data Manipulation Language) Support
 
@@ -483,12 +529,28 @@ Created by [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
 ## Changelog
 
-### 0.1.0 (Initial Release)
+See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
-- Basic query console with read-only enforcement
-- Environment gating and authorization hooks
-- SQL validation and row limiting
-- Query timeout protection
-- Client-side history with localStorage
-- Comprehensive test suite
-- Audit logging
+### Recent Updates
+
+#### Latest (DML Support)
+- ✨ **Optional DML Support**: INSERT/UPDATE/DELETE with mandatory confirmation dialogs
+- 🎯 **Accurate Row Counts**: Proper affected rows tracking for DML operations
+- 🔒 **Enhanced Security**: Pre-execution confirmation with detailed warnings
+- 📝 **Enhanced Audit Logging**: Query type classification and DML flags
+- 🗃️ **Multi-Database Support**: SQLite, PostgreSQL, MySQL compatibility
+
+#### v0.2.0 (January 2026)
+- 📊 **EXPLAIN Plans**: Query execution plan analysis
+- 🗂️ **Schema Explorer**: Interactive table/column browser with quick actions
+- 💾 **Saved Queries**: Client-side query management with import/export
+- 🎨 **Modern UI**: Tabbed navigation and collapsible sections
+- 🔍 **Quick Actions**: Generate queries from schema explorer
+
+#### v0.1.0 (Initial Release)
+- 🔒 Read-only query console with security enforcement
+- 🚦 Environment gating and authorization hooks
+- ✅ SQL validation and row limiting
+- ⏱️ Query timeout protection
+- 📜 Client-side history with localStorage
+- ✅ Comprehensive test suite and audit logging

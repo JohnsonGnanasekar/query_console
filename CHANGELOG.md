@@ -5,6 +5,166 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.1] - 2026-02-09
+
+### 🔐 Security Enhancement - DML Support
+
+This release adds optional Data Manipulation Language (DML) support with comprehensive safety features and user confirmation workflows.
+
+### ✨ New Features
+
+#### 1. Optional DML Support 🔐
+- **Configuration Toggle**: Enable/disable DML via `config.enable_dml` (default: `false`)
+- **Supported Operations**: INSERT, UPDATE, DELETE, MERGE (PostgreSQL)
+- **Pre-Execution Confirmation**: Mandatory JavaScript confirmation dialog before DML execution
+- **Clear Warnings**: Explicit warnings about permanent data modifications
+- **User Cancellation**: Users can safely cancel DML operations without side effects
+- **Multi-Database Support**: Works with SQLite, PostgreSQL, MySQL
+
+#### 2. Enhanced User Experience 🎯
+- **Pre-Execution Dialog**: 
+  - Appears before any DML query is sent to the server
+  - Clear warning about permanent changes
+  - "Proceed" or "Cancel" options
+  - Lists all DML operations being performed
+- **Post-Execution Banner**: 
+  - Informational message after successful DML execution
+  - Uses past tense: "This query has modified the database"
+  - Includes logging confirmation
+- **Accurate Row Counts**: 
+  - Displays "Rows Affected: X" for DML operations
+  - Shows "X row(s) affected" in results area
+  - Database-specific implementations (SQLite, PostgreSQL, MySQL)
+
+#### 3. Security Enhancements 🔒
+- **Read-Only by Default**: DML is disabled unless explicitly enabled
+- **Granular Control**: Can enable DML only in specific environments
+- **DDL Still Blocked**: DROP, ALTER, CREATE, TRUNCATE always forbidden
+- **Enhanced Validation**: Conditional keyword validation based on DML setting
+- **Query Type Detection**: Automatic DML detection at multiple layers
+
+#### 4. Enhanced Audit Logging 📝
+- **Query Type Classification**: All queries tagged with type (SELECT, INSERT, UPDATE, DELETE)
+- **DML Flag**: Boolean `is_dml` flag for easy filtering
+- **Affected Rows Count**: Logged with each DML operation
+- **Actor Tracking**: All DML operations tracked to specific users
+
+### 🔧 Implementation Details
+
+#### New Configuration
+```ruby
+QueryConsole.configure do |config|
+  config.enable_dml = true
+  config.enabled_environments = ["development", "staging"]  # Recommended
+end
+```
+
+#### Database Adapter Support
+- **SQLite**: `raw_connection.changes` for affected rows
+- **PostgreSQL**: `result.cmd_tuples` for affected rows  
+- **MySQL**: `result.affected_rows` for affected rows
+
+#### Modified Components
+- `SqlValidator`: Conditional DML keyword validation
+- `SqlLimiter`: Skip LIMIT wrapping for DML queries
+- `Runner`: Track affected rows using adapter-specific methods
+- `AuditLogger`: Enhanced with `query_type` and `is_dml` fields
+- `QueriesController`: Pass DML flag to views
+- JavaScript: Client-side confirmation dialogs
+
+### 🧪 Testing
+
+#### Browser Integration Tests (All Passing)
+- ✅ INSERT with confirmation dialog
+- ✅ UPDATE with multi-row affected count
+- ✅ DELETE with affected rows display
+- ✅ Confirmation cancellation (no execution)
+- ✅ DDL still blocked (DROP, TRUNCATE)
+- ✅ No regression in SELECT functionality
+
+#### RSpec Unit Tests (All Passing)
+- ✅ DML validation with config enabled/disabled
+- ✅ SqlLimiter skips wrapping for DML
+- ✅ Runner tracks affected rows correctly
+- ✅ AuditLogger includes query type metadata
+
+### 📝 UI Behavior
+
+**Before Execution:**
+```
+⚠️ DATA MODIFICATION WARNING
+
+This query will INSERT, UPDATE, or DELETE data.
+
+• All changes are PERMANENT and cannot be undone
+• All operations are logged
+
+Do you want to proceed?
+
+[Cancel] [OK]
+```
+
+**After Execution:**
+```
+ℹ️ Data Modified: This query has modified the database. 
+All changes are logged.
+
+Execution Time: 1.2ms
+Rows Affected: 3
+
+3 row(s) affected
+```
+
+### ⚠️ What's Still Blocked
+
+Even with `enable_dml = true`, these operations remain **forbidden**:
+- `DROP`, `ALTER`, `CREATE` (schema changes)
+- `TRUNCATE` (bulk deletion)
+- `GRANT`, `REVOKE` (permission changes)
+- `EXECUTE`, `EXEC` (stored procedures)
+- `TRANSACTION`, `COMMIT`, `ROLLBACK` (manual transaction control)
+
+### 🔄 Backwards Compatibility
+
+- ✅ All existing features maintained
+- ✅ Read-only behavior unchanged by default
+- ✅ No breaking changes
+- ✅ Seamless upgrade path
+
+### 📦 Upgrade Guide
+
+```bash
+# Update Gemfile
+gem 'query_console', '~> 0.2.1'
+
+# Install
+bundle update query_console
+
+# Optional: Enable DML in initializer
+QueryConsole.configure do |config|
+  config.enable_dml = true  # Default: false
+end
+```
+
+### 🐛 Bug Fixes
+
+- Fixed partial paths in `ExplainController` for consistency
+- Improved row count display for SELECT vs DML operations
+- Enhanced error messages for query validation
+
+### 📝 Known Limitations
+
+- No transaction support (queries auto-commit)
+- Cannot batch multiple DML statements
+- Confirmation dialog requires JavaScript
+
+### 🔗 Links
+
+- **Documentation**: See README.md DML section
+- **Security Notes**: See Security Considerations section
+
+---
+
 ## [0.2.0] - 2026-01-15
 
 ### 🚀 Feature Release
@@ -305,5 +465,6 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.1]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.1
 [0.2.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.0
 [0.1.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.1.0
