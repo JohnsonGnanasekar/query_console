@@ -3,9 +3,35 @@
 [![Gem Version](https://badge.fury.io/rb/query_console.svg)](https://badge.fury.io/rb/query_console)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg)](MIT-LICENSE)
 [![Ruby](https://img.shields.io/badge/ruby-%3E%3D%203.1-ruby.svg)](https://www.ruby-lang.org)
-[![Rails](https://img.shields.io/badge/rails-%3E%3D%207.0-red.svg)](https://rubyonrails.org)
+[![Rails](https://img.shields.io/badge/rails-7.0--8.x-red.svg)](https://rubyonrails.org)
 
 A Rails engine that provides a secure, mountable web interface for running SQL queries against your application's database. Read-only by default with optional DML support.
+
+---
+
+## 🚨 SECURITY ALERT: v0.3.0 - Critical Fixes
+
+**Version 0.3.0** (Feb 10, 2026) addresses **4 security vulnerabilities** identified by third-party audit:
+
+- **🔴 CRITICAL**: Subquery DML Bypass - `SELECT * FROM (DELETE FROM users) AS x` bypassed all security
+- **🟠 HIGH**: Missing server-side DML confirmation - curl requests bypassed user consent dialog
+- **🟠 HIGH**: Audit trail misclassification - subquery DML logged incorrectly
+- **🟡 LOW**: History panel XSS vulnerability
+
+**Action Required:**
+```bash
+# If using enable_dml = true, upgrade immediately:
+bundle update query_console  # Updates to v0.3.0+
+```
+
+**Breaking Changes in v0.3.0:**
+- Subquery DML now blocked (use top-level DML only)
+- Server-side confirmation required for all DML operations
+- Conservative keyword matching (may block DML keywords in string literals)
+
+See [v0.3.0 Release Notes](https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.3.0) for details.
+
+---
 
 ![Query Console Interface](docs/images/query-execution.png)
 *Modern, responsive SQL query interface with schema explorer, query management, and real-time execution*
@@ -74,17 +100,24 @@ A Rails engine that provides a secure, mountable web interface for running SQL q
 
 ## Security Features
 
-QueryConsole implements multiple layers of security:
+QueryConsole implements multiple layers of security (enhanced in v0.3.0):
 
 1. **Environment Gating**: Only enabled in configured environments (development by default)
 2. **Authorization Hook**: Requires explicit authorization configuration
 3. **Read-Only by Default**: Only SELECT and WITH (CTE) queries allowed by default
-4. **Optional DML with Safeguards**: INSERT/UPDATE/DELETE available when explicitly enabled, with mandatory user confirmation dialogs
+4. **Optional DML with Safeguards**: INSERT/UPDATE/DELETE available when explicitly enabled, with:
+   - **Client-side confirmation dialog** before execution
+   - **Server-side confirmation verification** (v0.3.0+)
+   - **Top-level DML only** - subquery/CTE DML blocked (v0.3.0+)
+   - Accurate "Rows Affected" display
 5. **Keyword Blocking**: Always blocks DDL operations (DROP, ALTER, CREATE, TRUNCATE, etc.)
-6. **Statement Isolation**: Prevents multiple statement execution
-7. **Row Limiting**: Automatic result limiting to prevent resource exhaustion
-8. **Query Timeout**: Configurable timeout to prevent long-running queries
-9. **Comprehensive Audit Trail**: All queries logged with actor, query type, and execution metadata
+6. **Subquery Security**: DML keywords blocked in subqueries and CTEs (v0.3.0+)
+7. **Statement Isolation**: Prevents multiple statement execution
+8. **CSRF Protection**: Proper CSRF token validation for all POST requests
+9. **XSS Prevention**: HTML escaping in query history and results (v0.3.0+)
+10. **Row Limiting**: Automatic result limiting to prevent resource exhaustion
+11. **Query Timeout**: Configurable timeout with database-level support (PostgreSQL)
+12. **Comprehensive Audit Trail**: All queries logged with accurate query type and DML classification (v0.3.0+)
 
 ## Installation
 
@@ -102,10 +135,10 @@ rails generate query_console:install
 ```
 
 **Requirements:**
-- Ruby 3.1+
-- Rails 7.0+
-- Works with Rails 8+
+- Ruby 3.1.0+ (tested up to 3.4.4)
+- Rails 7.0.0 - 8.x (tested up to 8.1.2)
 - Hotwire (Turbo Rails + Stimulus) - automatically included
+- PostgreSQL 9.0+ (recommended for database-level query timeout)
 
 ## Configuration
 
@@ -129,6 +162,7 @@ QueryConsole.configure do |config|
   # Optional: Adjust limits
   # config.max_rows = 1000
   # config.timeout_ms = 5000
+  # config.timeout_strategy = :database  # :database (PostgreSQL), :ruby (fallback), nil (auto-detect)
   
   # Advanced Features
   # EXPLAIN feature (default: enabled)
@@ -178,6 +212,7 @@ config.authorize = ->(_controller) { true }
 | `current_actor` | `->(_) { "unknown" }` | Lambda/proc to identify who's running queries |
 | `max_rows` | `500` | Maximum rows returned per query |
 | `timeout_ms` | `3000` | Query timeout in milliseconds |
+| `timeout_strategy` | `nil` | Timeout strategy: `:database` (PostgreSQL only), `:ruby` (fallback), or `nil` (auto-detect) |
 | `forbidden_keywords` | See code | SQL keywords that are blocked |
 | `allowed_starts_with` | `["select", "with"]` | Allowed query starting keywords |
 | `enable_dml` | `false` | Enable DML queries (INSERT, UPDATE, DELETE) |
@@ -199,11 +234,15 @@ QueryConsole.configure do |config|
 end
 ```
 
-#### Important Security Notes
+#### Important Security Notes (v0.3.0+)
 
 - **DML is disabled by default** for safety
-- When enabled, INSERT, UPDATE, DELETE, and MERGE queries are permitted
-- All DML operations are logged with actor information and query type
+- When enabled, INSERT, UPDATE, DELETE, and MERGE queries are permitted **at top-level only**
+- **🔒 Security Enhancement (v0.3.0)**: 
+  - **Subquery DML blocked** - DML keywords in subqueries/CTEs are rejected to prevent injection attacks
+  - **Server-side confirmation** - DML requires both client confirmation AND server-side verification
+  - **Conservative matching** - DML keywords in string literals may be blocked for security
+- All DML operations are logged with accurate query type and DML classification
 - No transaction support - queries auto-commit immediately
 - Consider additional application-level authorization for production use
 
@@ -216,16 +255,18 @@ Even with DML enabled, these operations remain **forbidden**:
 - `EXECUTE`, `EXEC` (stored procedures)
 - `TRANSACTION`, `COMMIT`, `ROLLBACK` (manual transaction control)
 - System procedures (`sp_`, `xp_`)
+- **🔒 DML in subqueries/CTEs** (v0.3.0+) - Security fix to prevent injection attacks
 
 #### UI Behavior with DML
 
 When DML is enabled and a DML query is detected:
-- **Before execution**: A confirmation dialog appears with a clear warning about permanent data modifications
+- **Before execution**: A browser confirmation dialog appears with a clear warning about permanent data modifications
 - User must explicitly confirm to proceed (can click "Cancel" to abort)
+- **🔒 Server-side verification (v0.3.0+)**: Confirmation is verified server-side - requests without `dml_confirmed=true` are rejected
 - **After execution**: An informational banner shows: "ℹ️ Data Modified: This query has modified the database"
 - **Rows Affected** count is displayed (e.g., "3 row(s) affected") showing how many rows were inserted/updated/deleted
 - The security banner reflects DML status
-- All changes are permanent and logged
+- All changes are permanent and logged with accurate query type
 
 #### Database Support
 
@@ -535,7 +576,16 @@ See [CHANGELOG.md](CHANGELOG.md) for detailed version history.
 
 ### Recent Updates
 
-#### Latest (DML Support)
+#### v0.3.0 (February 2026) - 🚨 CRITICAL SECURITY FIXES
+- 🔴 **Subquery DML Bypass Fix**: Blocks DML in subqueries/CTEs to prevent injection attacks
+- 🔒 **Server-Side Confirmation**: DML now requires server-side verification, not just client-side
+- 📝 **Audit Trail Accuracy**: Proper DML classification in audit logs
+- 🛡️ **XSS Prevention**: HTML escaping in query history
+- ⚡ **Database Timeout Strategy**: PostgreSQL statement_timeout support to prevent orphan queries
+- 🔧 **Rails 8.1 Compatibility**: Fixed engine route proxy issues
+- ✅ **All Security Findings Remediated**: Third-party audit findings addressed
+
+#### v0.2.1 (February 2026) - DML Support
 - ✨ **Optional DML Support**: INSERT/UPDATE/DELETE with mandatory confirmation dialogs
 - 🎯 **Accurate Row Counts**: Proper affected rows tracking for DML operations
 - 🔒 **Enhanced Security**: Pre-execution confirmation with detailed warnings
