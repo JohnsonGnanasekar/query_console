@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.2] - 2026-02-10
+
+### 🔧 Fixed
+
+#### Dependency Improvements
+- **Removed hard importmap-rails dependency**: The gem no longer forces host applications to install `importmap-rails` when using other JavaScript bundlers (esbuild, webpack, vite, etc.)
+- **Made importmap integration optional**: The importmap initializer now conditionally loads only if `Importmap` is defined in the host app
+- **Self-contained UI**: The query console UI uses inline importmaps with CDN scripts, making it fully functional without the Rails importmap system
+
+#### Technical Details
+- Removed `spec.add_dependency "importmap-rails", "~> 2.0"` from gemspec
+- Updated `query_console.importmap` initializer to check for `defined?(Importmap)` before attempting to register the importmap config
+- The `config/importmap.rb` file remains for apps that do use importmap-rails (optional convenience)
+- Host apps using esbuild, webpack, or other bundlers no longer need to install an unnecessary dependency
+
+### 🎯 Benefits
+- Smaller dependency footprint for apps not using importmap
+- Better compatibility with modern JavaScript bundlers
+- No breaking changes - existing importmap-based apps continue to work as before
+
 ## [0.2.1] - 2026-02-09
 
 ### 🔐 Security Enhancement - DML Support
@@ -465,6 +485,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.2]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.2
 [0.2.1]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.1
 [0.2.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.0
 [0.1.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.1.0

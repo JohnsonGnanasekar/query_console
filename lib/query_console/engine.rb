@@ -11,7 +11,7 @@ module QueryConsole
     
     # Load Hotwire (Turbo & Stimulus)
     initializer "query_console.importmap", before: "importmap" do |app|
-      if app.config.respond_to?(:importmap)
+      if defined?(Importmap) && app.config.respond_to?(:importmap)
         app.config.importmap.paths << root.join("config/importmap.rb")
       end
     end
