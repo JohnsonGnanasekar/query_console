@@ -5,6 +5,36 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.5] - 2026-02-10
+
+### 🐛 Fixed - Rails 8.1 Compatibility
+
+#### Critical: Engine Route Proxy Issue
+- **Problem**: In Rails 8.1 with `isolate_namespace`, the route proxy (e.g., `query_console.run_path`) is not available within the engine's own views, causing the UI to break
+- **Solution**: Replaced all `query_console.*_path` route helpers with direct path helpers
+
+#### Changes
+Fixed 4 occurrences in `app/views/query_console/queries/new.html.erb`:
+- `query_console.run_path` → `run_path`
+- `query_console.explain_path` → `explain_path`
+- `query_console.schema_tables_path` → `schema_tables_path` (2 occurrences)
+
+#### Impact
+- ✅ **Rails 8.1 compatibility** - UI now works correctly with latest Rails
+- ✅ **Backward compatible** - Works with Rails 7.0+ and Rails 8.0
+- ✅ **No breaking changes** - Route helpers work identically
+
+#### Technical Details
+Within an engine's own views, route helpers are directly available without the engine namespace prefix. The `isolate_namespace` directive in Rails engines makes route helpers like `run_path` available directly in the engine's views, while external apps use `query_console.run_path` to access them.
+
+```erb
+<!-- Before (broken in Rails 8.1) -->
+form.action = '<%= query_console.run_path %>'
+
+<!-- After (works in all Rails versions) -->
+form.action = '<%= run_path %>'
+```
+
 ## [0.2.4] - 2026-02-10
 
 ### ⚡ Improved - Safer Query Timeout Strategy
@@ -588,6 +618,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.5]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.5
 [0.2.4]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.4
 [0.2.3]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.3
 [0.2.2]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.2

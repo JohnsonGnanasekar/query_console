@@ -595,7 +595,7 @@
         // Create form with Turbo Frame target
         const form = document.createElement('form')
         form.method = 'POST'
-        form.action = '<%= query_console.run_path %>'
+        form.action = '<%= run_path %>'
         form.setAttribute('data-turbo-frame', 'query-results')
         form.innerHTML = `
           <input type="hidden" name="sql" value="${this.escapeHtml(sql)}">
@@ -622,7 +622,7 @@
         // Create form with Turbo Frame target
         const form = document.createElement('form')
         form.method = 'POST'
-        form.action = '<%= query_console.explain_path %>'
+        form.action = '<%= explain_path %>'
         form.setAttribute('data-turbo-frame', 'explain-results')
         form.innerHTML = `
           <input type="hidden" name="sql" value="${this.escapeHtml(sql)}">
@@ -651,7 +651,7 @@
       
       async loadTables() {
         try {
-          const response = await fetch('<%= query_console.schema_tables_path %>')
+          const response = await fetch('<%= schema_tables_path %>')
           this.tables = await response.json()
           this.renderTables()
         } catch (error) {
@@ -680,7 +680,7 @@
         const tableName = event.currentTarget.dataset.tableName
         
         try {
-          const response = await fetch(`<%= query_console.schema_tables_path %>/${tableName}`)
+          const response = await fetch(`<%= schema_tables_path %>/${tableName}`)
           const tableData = await response.json()
           this.renderTableDetails(tableData)
         } catch (error) {
