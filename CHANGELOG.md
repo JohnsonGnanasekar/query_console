@@ -5,6 +5,26 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.6] - 2026-02-10
+
+### 🔧 Improved - Rails Version Constraint
+
+#### Added Upper Bound for Rails Dependency
+- **Changed**: Rails dependency from `>= 7.0.0` to `>= 7.0.0, < 9.0`
+- **Reason**: Provides better version constraint to prevent potential breaking changes in future major Rails versions
+- **Impact**: Maintains backward compatibility while explicitly supporting Rails 7.x and 8.x
+
+#### Version Support
+- ✅ **Ruby**: 3.1.0+ (supports 3.1, 3.2, 3.3, 3.4+)
+- ✅ **Rails**: 7.0.0 - 8.x (supports 7.0, 7.1, 8.0, 8.1+)
+- ✅ **Tested on**: Ruby 3.4.4, Rails 8.1.2
+
+#### Benefits
+- Clear version range for Rails compatibility
+- Prevents automatic upgrades to Rails 9.0 (when released)
+- Follows semantic versioning best practices
+- Maintains backward compatibility
+
 ## [0.2.5] - 2026-02-10
 
 ### 🐛 Fixed - Rails 8.1 Compatibility
@@ -618,6 +638,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.6]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.6
 [0.2.5]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.5
 [0.2.4]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.4
 [0.2.3]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.3
