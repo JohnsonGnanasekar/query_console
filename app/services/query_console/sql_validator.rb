@@ -67,11 +67,24 @@ module QueryConsole
       # Check for forbidden keywords
       normalized_query = sanitized.downcase
       
-      # Filter forbidden keywords based on DML enablement
-      effective_forbidden = if @config.enable_dml
-        @config.forbidden_keywords.reject { |kw| dml_keywords.include?(kw) || kw == 'replace' || kw == 'into' }
+      # SECURITY FIX: When DML is enabled, we still need to prevent DML in subqueries
+      # Only allow DML at the top level (start of query)
+      if @config.enable_dml
+        # Check if this is a top-level DML query
+        is_top_level_dml = normalized_start.match?(/\A(insert|update|delete|merge)\b/)
+        
+        # If DML keywords appear anywhere else (subqueries, CTEs), block them
+        if !is_top_level_dml && normalized_query.match?(/\b(insert|update|delete|merge)\b/)
+          return ValidationResult.new(
+            valid: false,
+            error: "DML keywords (INSERT, UPDATE, DELETE, MERGE) are not allowed in subqueries or WITH clauses"
+          )
+        end
+        
+        # Filter forbidden keywords - only remove DML from forbidden list for top-level queries
+        effective_forbidden = @config.forbidden_keywords.reject { |kw| dml_keywords.include?(kw) || kw == 'replace' || kw == 'into' }
       else
-        @config.forbidden_keywords
+        effective_forbidden = @config.forbidden_keywords
       end
       
       forbidden = effective_forbidden.find do |keyword|
@@ -86,7 +99,7 @@ module QueryConsole
         )
       end
 
-      # Detect if this is a DML query
+      # Detect if this is a DML query (top-level only)
       is_dml_query = sanitized.downcase.match?(/\A(insert|update|delete|merge)\b/)
 
       ValidationResult.new(valid: true, sanitized_sql: sanitized, is_dml: is_dml_query)

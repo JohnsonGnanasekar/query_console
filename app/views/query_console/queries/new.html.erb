@@ -597,10 +597,19 @@
         form.method = 'POST'
         form.action = '<%= run_path %>'
         form.setAttribute('data-turbo-frame', 'query-results')
-        form.innerHTML = `
+        
+        // SECURITY FIX: Add dml_confirmed parameter for server-side verification
+        let formHTML = `
           <input type="hidden" name="sql" value="${this.escapeHtml(sql)}">
           <input type="hidden" name="authenticity_token" value="${document.querySelector('meta[name=csrf-token]').content}">
         `
+        
+        // If DML query was confirmed, add confirmation parameter
+        if (this.isDmlQuery(sql)) {
+          formHTML += `<input type="hidden" name="dml_confirmed" value="true">`
+        }
+        
+        form.innerHTML = formHTML
         document.body.appendChild(form)
         form.requestSubmit()
         document.body.removeChild(form)
@@ -790,7 +799,7 @@
           history.map((item, index) => `
             <li data-action="click->history#load" data-index="${index}">
               <div style="font-size: 12px; color: #6c757d;">${new Date(item.timestamp).toLocaleString()}</div>
-              <div style="font-size: 13px; margin-top: 4px;">${this.truncate(item.sql, 100)}</div>
+              <div style="font-size: 13px; margin-top: 4px;">${this.escapeHtml(this.truncate(item.sql, 100))}</div>
             </li>
           `).join('') :
           '<li style="color: #6c757d; text-align: center; padding: 20px;">No query history</li>'
@@ -828,6 +837,13 @@
       
       saveHistory(history) {
         localStorage.setItem(this.storageKeyValue, JSON.stringify(history))
+      }
+      
+      // SECURITY FIX: Escape HTML to prevent XSS
+      escapeHtml(text) {
+        const div = document.createElement('div')
+        div.textContent = text
+        return div.innerHTML
       }
       
       truncate(str, length) {

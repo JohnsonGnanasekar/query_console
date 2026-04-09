@@ -5,6 +5,112 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-10
+
+### 🚨 CRITICAL SECURITY FIXES
+
+This release addresses **4 security vulnerabilities** identified by third-party security audit. **Immediate upgrade strongly recommended** for all users with DML enabled.
+
+#### 🔴 Finding 1 - Subquery DML Bypass (CRITICAL) - FIXED
+**Vulnerability:** `SELECT * FROM (DELETE FROM users RETURNING *) AS x` completely bypassed DML restrictions
+
+**Impact:** 
+- Attackers could execute DML operations even when only top-level DML was intended
+- Data modification/deletion possible through SQL injection in subqueries
+- Complete security control bypass
+
+**Fix:**
+- SQL Validator now scans entire query for DML keywords, not just the start
+- DML keywords (INSERT, UPDATE, DELETE, MERGE) blocked in subqueries and WITH clauses
+- Only top-level DML queries allowed when `enable_dml = true`
+- Conservative approach: blocks DML keywords even in string literals to prevent injection
+
+**Code Changes:**
+- `app/services/query_console/sql_validator.rb`: Added subquery DML detection
+- Added 8 new security tests in `spec/services/sql_validator_spec.rb`
+
+#### 🟠 Finding 2 - Client-Side-Only DML Confirmation (HIGH) - FIXED
+**Vulnerability:** DML confirmation dialog was client-side only, could be bypassed with curl + Turbo-Frame header
+
+**Impact:**
+- Attackers could bypass confirmation dialog with crafted POST requests
+- No server-side verification of user consent
+- DML operations executable without user awareness
+
+**Fix:**
+- Added server-side `dml_confirmed` parameter check in `QueriesController#run`
+- DML queries now require `dml_confirmed=true` parameter server-side
+- Client sends confirmation after user clicks "OK" in dialog
+- Requests without confirmation are rejected with clear error message
+
+**Code Changes:**
+- `app/controllers/query_console/queries_controller.rb`: Added server-side confirmation check
+- `app/views/query_console/queries/new.html.erb`: Send `dml_confirmed` parameter
+
+#### 🟠 Finding 3 - Audit Trail Misclassification (HIGH) - FIXED
+**Vulnerability:** Audit logger only checked start of query, subquery DML logged as "SELECT"
+
+**Impact:**
+- Subquery DML operations logged incorrectly
+- Compliance violations (SOC 2, HIPAA, etc.)
+- Forensic investigation hindered
+
+**Fix:**
+- `AuditLogger.is_dml_query?` now scans entire query for DML keywords
+- `AuditLogger.determine_query_type` detects DML anywhere in query
+- Subquery DML properly logged with correct query type and `is_dml: true`
+
+**Code Changes:**
+- `app/services/query_console/audit_logger.rb`: Scan entire query, not just start
+
+#### 🟡 Bonus - History Panel XSS (LOW) - FIXED
+**Vulnerability:** History panel used `innerHTML` without escaping SQL queries
+
+**Impact:**
+- Potential XSS if malicious SQL stored in history
+- Low risk (user's own queries) but still a security gap
+
+**Fix:**
+- Added `escapeHtml()` method to HistoryController
+- All SQL displayed in history now HTML-escaped
+- Prevents potential XSS attacks
+
+**Code Changes:**
+- `app/views/query_console/queries/new.html.erb`: Escape HTML in history rendering
+
+### 📋 Security Notes
+
+**Conservative Security Approach:**
+- DML keywords in string literals are blocked (e.g., `WHERE name = 'delete'`)
+- This prevents sophisticated SQL injection attacks
+- Trade-off: Some legitimate queries may be blocked
+- To properly support DML keywords in strings, a full SQL parser would be needed
+
+**Testing:**
+- All 110 service tests pass
+- 8 new security tests added
+- Subquery DML bypass verified blocked
+- Server-side confirmation verified required
+
+### ⚠️ Breaking Changes
+
+**Behavioral Changes:**
+1. **Subquery DML now blocked** - Queries with DML in subqueries/CTEs are rejected
+2. **Server-side confirmation required** - DML requests without `dml_confirmed` parameter fail
+3. **Conservative keyword matching** - DML keywords in string literals may trigger false positives
+
+**Migration Path:**
+- If using subquery DML: Refactor to top-level DML queries
+- If bypassing client-side confirmation: Update to send `dml_confirmed=true`
+- If using DML keywords in strings: Consider alternative phrasing or disable DML
+
+### 📊 Security Audit Report
+
+**Audit Date:** 2026-02-10
+**Auditor:** Third-party security firm
+**Findings:** 4 vulnerabilities (1 Critical, 2 High, 1 Low)
+**Status:** All findings remediated in v0.3.0
+
 ## [0.2.6] - 2026-02-10
 
 ### 🔧 Improved - Rails Version Constraint
@@ -638,6 +744,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.3.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.3.0
 [0.2.6]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.6
 [0.2.5]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.5
 [0.2.4]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.4

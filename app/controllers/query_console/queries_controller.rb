@@ -16,6 +16,27 @@ module QueryConsole
         return
       end
 
+      # SECURITY FIX: Server-side DML confirmation check
+      # Validate DML confirmation before execution
+      config = QueryConsole.configuration
+      if config.enable_dml
+        # Quick check if SQL contains DML keywords
+        normalized_sql = sql.strip.downcase
+        if normalized_sql.match?(/\A(insert|update|delete|merge)\b/)
+          # This is a DML query - require confirmation
+          unless params[:dml_confirmed] == 'true'
+            @result = Runner::QueryResult.new(
+              error: "DML query execution requires user confirmation. Please confirm the operation to proceed."
+            )
+            respond_to do |format|
+              format.turbo_stream { render turbo_stream: turbo_stream.replace("query-results", partial: "results", locals: { result: @result, is_dml: false }) }
+              format.html { render :_results, layout: false }
+            end
+            return
+          end
+        end
+      end
+
       # Execute the query
       runner = Runner.new(sql)
       @result = runner.execute

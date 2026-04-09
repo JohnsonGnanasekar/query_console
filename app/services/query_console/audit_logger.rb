@@ -39,17 +39,33 @@ module QueryConsole
     end
 
     def self.is_dml_query?(sql)
-      sql.to_s.strip.downcase.match?(/\A(insert|update|delete|merge)\b/)
+      normalized = sql.to_s.strip.downcase
+      # Check if it's a top-level DML query
+      is_top_level = normalized.match?(/\A(insert|update|delete|merge)\b/)
+      # SECURITY FIX: Also check for DML anywhere in the query (subqueries)
+      has_dml_anywhere = normalized.match?(/\b(insert|update|delete|merge)\b/)
+      
+      # Return true if DML detected anywhere (for audit purposes)
+      is_top_level || has_dml_anywhere
     end
 
     def self.determine_query_type(sql)
-      case sql.to_s.strip.downcase
+      normalized = sql.to_s.strip.downcase
+      
+      # SECURITY FIX: Check for DML anywhere in query, not just at start
+      # This ensures subquery DML is properly logged
+      if normalized.match?(/\b(insert|update|delete|merge)\b/)
+        # Determine which DML operation (prefer top-level, but detect any)
+        return "INSERT" if normalized.match?(/\binsert\b/)
+        return "UPDATE" if normalized.match?(/\bupdate\b/)
+        return "DELETE" if normalized.match?(/\bdelete\b/)
+        return "MERGE" if normalized.match?(/\bmerge\b/)
+      end
+      
+      # If no DML, check for SELECT/WITH
+      case normalized
       when /\Aselect\b/ then "SELECT"
       when /\Awith\b/ then "WITH"
-      when /\Ainsert\b/ then "INSERT"
-      when /\Aupdate\b/ then "UPDATE"
-      when /\Adelete\b/ then "DELETE"
-      when /\Amerge\b/ then "MERGE"
       else "UNKNOWN"
       end
     end

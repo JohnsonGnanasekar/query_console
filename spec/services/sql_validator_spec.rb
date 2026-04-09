@@ -413,5 +413,95 @@ RSpec.describe QueryConsole::SqlValidator do
         expect(result).not_to be_dml
       end
     end
+
+    # SECURITY TESTS: Subquery DML Bypass
+    context 'security: subquery DML bypass prevention' do
+      let(:config) do
+        config = QueryConsole::Configuration.new
+        config.enable_dml = true
+        config
+      end
+
+      it 'blocks DELETE in subquery when DML enabled' do
+        sql = 'SELECT * FROM (DELETE FROM users RETURNING *) AS x'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).not_to be_valid
+        expect(result.error).to include('DML keywords')
+        expect(result.error).to include('subqueries')
+      end
+
+      it 'blocks UPDATE in subquery when DML enabled' do
+        sql = 'SELECT * FROM (UPDATE users SET name = \'x\' RETURNING *) AS x'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).not_to be_valid
+        expect(result.error).to include('DML keywords')
+        expect(result.error).to include('subqueries')
+      end
+
+      it 'blocks INSERT in subquery when DML enabled' do
+        sql = 'SELECT * FROM (INSERT INTO users (name) VALUES (\'x\') RETURNING *) AS x'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).not_to be_valid
+        expect(result.error).to include('DML keywords')
+        expect(result.error).to include('subqueries')
+      end
+
+      it 'blocks DELETE in WITH clause when DML enabled' do
+        sql = 'WITH deleted AS (DELETE FROM users RETURNING *) SELECT * FROM deleted'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).not_to be_valid
+        expect(result.error).to include('DML keywords')
+        expect(result.error).to include('WITH clauses')
+      end
+
+      it 'allows top-level DELETE when DML enabled' do
+        sql = 'DELETE FROM users WHERE id = 1'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+      end
+
+      it 'allows top-level INSERT when DML enabled' do
+        sql = 'INSERT INTO users (name) VALUES (\'test\')'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).to be_dml
+      end
+
+      it 'blocks SELECT with DML keyword in string literal (conservative security)' do
+        # NOTE: This is a conservative security measure. Even though 'delete' is in a
+        # string literal, we block it to prevent sophisticated SQL injection attacks.
+        # A full SQL parser would be needed to allow this safely.
+        sql = 'SELECT * FROM users WHERE name = \'delete\''
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).not_to be_valid
+        expect(result.error).to include('DML keywords')
+      end
+
+      it 'allows SELECT with table/column names containing DML-like words' do
+        # Table/column names like "deleted_at" or "updates" are OK
+        # as long as they're not exact DML keyword matches
+        sql = 'SELECT deleted_at, last_updated FROM users'
+        validator = described_class.new(sql, config)
+        result = validator.validate
+
+        expect(result).to be_valid
+        expect(result).not_to be_dml
+      end
+    end
   end
 end
