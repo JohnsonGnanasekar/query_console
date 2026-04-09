@@ -3,6 +3,7 @@ module QueryConsole
     attr_accessor :enabled_environments,
                   :max_rows,
                   :timeout_ms,
+                  :timeout_strategy,
                   :authorize,
                   :current_actor,
                   :forbidden_keywords,
@@ -21,6 +22,7 @@ module QueryConsole
       @enabled_environments = ["development"]
       @max_rows = 500
       @timeout_ms = 3000
+      @timeout_strategy = :database # :database (safer, PostgreSQL only) or :ruby (fallback, but can leave orphan queries)
       @authorize = nil # nil means deny by default
       @current_actor = -> (_controller) { "unknown" }
       @forbidden_keywords = %w[

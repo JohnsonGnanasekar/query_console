@@ -96,11 +96,58 @@ module QueryConsole
     end
 
     def execute_with_timeout(sql)
+      case @config.timeout_strategy
+      when :database
+        execute_with_database_timeout(sql)
+      when :ruby
+        execute_with_ruby_timeout(sql)
+      else
+        # Auto-detect: use database timeout for PostgreSQL, Ruby timeout otherwise
+        if postgresql_connection?
+          execute_with_database_timeout(sql)
+        else
+          execute_with_ruby_timeout(sql)
+        end
+      end
+    end
+
+    # Database-level timeout (PostgreSQL only)
+    # Safer: database cancels the query cleanly, no orphan processes
+    def execute_with_database_timeout(sql)
+      conn = ActiveRecord::Base.connection
+      
+      unless postgresql_connection?
+        Rails.logger.warn("[QueryConsole] Database timeout strategy requires PostgreSQL, falling back to Ruby timeout")
+        return execute_with_ruby_timeout(sql)
+      end
+
+      conn.transaction do
+        # SET LOCAL scopes the timeout to this transaction only
+        conn.execute("SET LOCAL statement_timeout = '#{@config.timeout_ms}'")
+        conn.exec_query(sql)
+      end
+    rescue ActiveRecord::StatementInvalid => e
+      if e.message.include?("canceling statement due to statement timeout") ||
+         e.message.include?("query_canceled")
+        raise Timeout::Error, "Query timeout: exceeded #{@config.timeout_ms}ms limit"
+      else
+        raise
+      end
+    end
+
+    # Ruby-level timeout (fallback for non-PostgreSQL databases)
+    # Warning: The database query continues running as an orphan process
+    # even after Ruby times out. Can cause resource exhaustion.
+    def execute_with_ruby_timeout(sql)
       timeout_seconds = @config.timeout_ms / 1000.0
       
       Timeout.timeout(timeout_seconds) do
         ActiveRecord::Base.connection.exec_query(sql)
       end
+    end
+
+    def postgresql_connection?
+      ActiveRecord::Base.connection.adapter_name.downcase.include?('postgresql')
     end
 
     def format_explain_output(result)

@@ -5,6 +5,81 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.4] - 2026-02-10
+
+### ⚡ Improved - Safer Query Timeout Strategy
+
+#### Configurable Timeout Strategy
+- **Added** `config.timeout_strategy` option with three modes:
+  - `:database` - Database-level timeout (PostgreSQL `statement_timeout`) - safer, no orphan queries
+  - `:ruby` - Ruby-level timeout (`Timeout.timeout`) - fallback for non-PostgreSQL databases
+  - `nil` (default) - Auto-detect: use database timeout for PostgreSQL, Ruby timeout for others
+
+#### Problem Solved: Orphan Query Issue
+**The Ruby Timeout Problem:**
+- When using `Timeout.timeout`, the Ruby thread is interrupted
+- **BUT the database query continues running** as an orphan process
+- Database connection is returned to pool, but query still executes
+- Can cause resource exhaustion and blocking locks
+
+**Database Timeout Solution:**
+- Database itself cancels the query using `SET LOCAL statement_timeout`
+- Clean termination at the DB level
+- No orphan queries
+- Scoped to transaction only - doesn't affect other connections
+
+#### Technical Implementation
+
+**Runner and ExplainRunner now support three timeout methods:**
+
+1. **Database Timeout (PostgreSQL):**
+```ruby
+conn.transaction do
+  conn.execute("SET LOCAL statement_timeout = '#{timeout_ms}'")
+  conn.exec_query(sql)
+end
+```
+
+2. **Ruby Timeout (Fallback):**
+```ruby
+Timeout.timeout(timeout_seconds) do
+  ActiveRecord::Base.connection.exec_query(sql)
+end
+```
+
+3. **Auto-Detection (Default):**
+- Detects PostgreSQL adapter → uses database timeout
+- Other adapters (SQLite, MySQL) → uses Ruby timeout with warning
+
+#### Configuration
+
+```ruby
+QueryConsole.configure do |config|
+  # Recommended for PostgreSQL (default: auto-detect)
+  config.timeout_strategy = :database
+  
+  # Or explicitly use Ruby timeout (not recommended for PostgreSQL)
+  config.timeout_strategy = :ruby
+  
+  # Or let it auto-detect (nil)
+  config.timeout_strategy = nil # default
+  
+  config.timeout_ms = 5000 # 5 seconds
+end
+```
+
+#### Benefits
+- ✅ **No orphan queries** with database-level timeout
+- ✅ **Cleaner resource management** - database handles cancellation
+- ✅ **Backward compatible** - Ruby timeout still available as fallback
+- ✅ **Auto-detection** - works out of the box for all databases
+- ✅ **Transaction-scoped** - `SET LOCAL` doesn't affect other connections
+
+#### Notes
+- PostgreSQL 9.0+ required for `statement_timeout` support
+- SQLite and MySQL use Ruby timeout (no equivalent to `SET LOCAL statement_timeout`)
+- Warning logged when database timeout requested for non-PostgreSQL adapters
+
 ## [0.2.3] - 2026-02-10
 
 ### 🔒 Security - Fixed CSRF Protection
@@ -513,6 +588,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.4]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.4
 [0.2.3]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.3
 [0.2.2]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.2
 [0.2.1]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.1
