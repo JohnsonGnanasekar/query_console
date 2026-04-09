@@ -1,7 +1,5 @@
 module QueryConsole
   class ExplainController < ApplicationController
-    skip_forgery_protection only: [:create] # Allow Turbo Frame POST requests
-
     def create
       sql = params[:sql]
 

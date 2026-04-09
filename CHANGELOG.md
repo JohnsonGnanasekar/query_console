@@ -5,6 +5,34 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.2.3] - 2026-02-10
+
+### 🔒 Security - Fixed CSRF Protection
+
+#### Fixed Unconditional CSRF Skip
+- **Problem**: `QueriesController` and `ExplainController` unconditionally disabled CSRF protection for POST actions, leaving them vulnerable to CSRF attacks
+- **Solution**: Removed unconditional `skip_forgery_protection` from both controllers
+- **Protection**: Now relies on `ApplicationController`'s conditional CSRF skip that only exempts Turbo-Frame requests (which include proper authentication)
+
+#### Technical Details
+- Removed `skip_forgery_protection only: [:run]` from `QueriesController`
+- Removed `skip_forgery_protection only: [:create]` from `ExplainController`
+- The base `ApplicationController` already has proper CSRF protection:
+  - `protect_from_forgery with: :exception, prepend: true`
+  - `skip_forgery_protection if: -> { request.headers['Turbo-Frame'].present? }`
+- UI forms include `authenticity_token` and `data-turbo-frame` attributes for proper Turbo integration
+
+#### Security Impact
+- ✅ Non-Turbo POST requests now require valid CSRF token
+- ✅ Turbo-Frame requests (normal UI usage) continue to work correctly
+- ✅ Raw curl/API requests without CSRF token are now properly rejected
+- ✅ No impact on legitimate users - UI includes proper CSRF tokens
+
+#### Testing
+- All 102 service specs pass
+- Updated `ExplainController` spec to include `Turbo-Frame` header in test requests
+- Verified UI forms include both `authenticity_token` and `data-turbo-frame`
+
 ## [0.2.2] - 2026-02-10
 
 ### 🔧 Fixed
@@ -485,6 +513,7 @@ MIT License - See [MIT-LICENSE](MIT-LICENSE) file for details.
 
 **Contributors**: [Johnson Gnanasekar](https://github.com/JohnsonGnanasekar)
 
+[0.2.3]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.3
 [0.2.2]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.2
 [0.2.1]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.1
 [0.2.0]: https://github.com/JohnsonGnanasekar/query_console/releases/tag/v0.2.0

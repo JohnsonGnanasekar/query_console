@@ -9,6 +9,9 @@ RSpec.describe QueryConsole::ExplainController, type: :controller do
     QueryConsole.reset_configuration!
     config.authorize = ->(_controller) { true } # Allow access for tests
     
+    # Set Turbo-Frame header to simulate real Turbo Frame requests
+    request.headers['Turbo-Frame'] = 'explain-results'
+    
     # Ensure users table exists for EXPLAIN tests
     ActiveRecord::Base.connection.execute(<<~SQL) unless ActiveRecord::Base.connection.table_exists?('users')
       CREATE TABLE users (
