@@ -60,14 +60,8 @@ module QueryConsole
 
       # Step 3: Execute query with timeout
       begin
-        result = execute_with_timeout(final_sql)
+        result, rows_affected = execute_with_timeout(final_sql, is_dml)
         execution_time = ((Time.now - start_time) * 1000).round(2)
-
-        # For DML queries, capture the number of affected rows
-        rows_affected = nil
-        if is_dml
-          rows_affected = get_affected_rows_count(result)
-        end
 
         QueryResult.new(
           columns: result.columns,
@@ -93,37 +87,47 @@ module QueryConsole
 
     attr_reader :sql, :config
 
-    def execute_with_timeout(sql)
+    def execute_with_timeout(sql, is_dml = false)
       case @config.timeout_strategy
       when :database
-        execute_with_database_timeout(sql)
+        execute_with_database_timeout(sql, is_dml)
       when :ruby
-        execute_with_ruby_timeout(sql)
+        execute_with_ruby_timeout(sql, is_dml)
       else
         # Auto-detect: use database timeout for PostgreSQL, Ruby timeout otherwise
         if postgresql_connection?
-          execute_with_database_timeout(sql)
+          execute_with_database_timeout(sql, is_dml)
         else
-          execute_with_ruby_timeout(sql)
+          execute_with_ruby_timeout(sql, is_dml)
         end
       end
     end
 
     # Database-level timeout (PostgreSQL only)
     # Safer: database cancels the query cleanly, no orphan processes
-    def execute_with_database_timeout(sql)
+    def execute_with_database_timeout(sql, is_dml = false)
       conn = ActiveRecord::Base.connection
       
       unless postgresql_connection?
         Rails.logger.warn("[QueryConsole] Database timeout strategy requires PostgreSQL, falling back to Ruby timeout")
-        return execute_with_ruby_timeout(sql)
+        return execute_with_ruby_timeout(sql, is_dml)
       end
 
+      result = nil
+      rows_affected = nil
+      
       conn.transaction do
         # SET LOCAL scopes the timeout to this transaction only
         conn.execute("SET LOCAL statement_timeout = '#{@config.timeout_ms}'")
-        conn.exec_query(sql)
+        result = conn.exec_query(sql)
+        
+        # For DML queries, capture affected rows BEFORE transaction commits
+        if is_dml
+          rows_affected = get_affected_rows_count_immediate(result)
+        end
       end
+      
+      [result, rows_affected]
     rescue ActiveRecord::StatementInvalid => e
       if e.message.include?("canceling statement due to statement timeout") ||
          e.message.include?("query_canceled")
@@ -136,12 +140,20 @@ module QueryConsole
     # Ruby-level timeout (fallback for non-PostgreSQL databases)
     # Warning: The database query continues running as an orphan process
     # even after Ruby times out. Can cause resource exhaustion.
-    def execute_with_ruby_timeout(sql)
+    def execute_with_ruby_timeout(sql, is_dml = false)
       timeout_seconds = @config.timeout_ms / 1000.0
       
-      Timeout.timeout(timeout_seconds) do
+      result = Timeout.timeout(timeout_seconds) do
         ActiveRecord::Base.connection.exec_query(sql)
       end
+      
+      # For DML queries, capture affected rows immediately after execution
+      rows_affected = nil
+      if is_dml
+        rows_affected = get_affected_rows_count_immediate(result)
+      end
+      
+      [result, rows_affected]
     end
 
     def postgresql_connection?
@@ -149,18 +161,24 @@ module QueryConsole
     end
 
     # Get the number of rows affected by a DML query
-    # This is database-specific, so we try different approaches
-    def get_affected_rows_count(result)
+    # MUST be called immediately after exec_query to capture accurate count
+    def get_affected_rows_count_immediate(result)
       conn = ActiveRecord::Base.connection
       
+      # Check if we cached it during database timeout
+      if result.instance_variable_defined?(:@cached_rows_affected)
+        cached = result.instance_variable_get(:@cached_rows_affected)
+        return cached if cached
+      end
+      
       # For SQLite, use the raw connection's changes method
+      # MUST be called immediately after query execution
       if conn.adapter_name.downcase.include?('sqlite')
         return conn.raw_connection.changes
       end
       
       # For PostgreSQL, MySQL, and others, check if result has rows_affected
-      # Note: exec_query doesn't always provide this, but we can try
-      if result.respond_to?(:rows_affected)
+      if result.respond_to?(:rows_affected) && result.rows_affected
         return result.rows_affected
       end
       

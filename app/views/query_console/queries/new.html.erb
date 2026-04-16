@@ -388,6 +388,30 @@
       font-weight: 600;
       background: #e9ecef;
     }
+
+    /* Schema status indicator */
+    .schema-status {
+      font-size: 12px;
+      padding: 4px 8px;
+      border-radius: 4px;
+      margin-left: 12px;
+      display: inline-block;
+    }
+
+    .schema-status.loading {
+      color: #0066cc;
+      background: #e6f2ff;
+    }
+
+    .schema-status.loaded {
+      color: #00aa00;
+      background: #e6ffe6;
+    }
+
+    .schema-status.error {
+      color: #cc6600;
+      background: #fff3e6;
+    }
   </style>
 
   <script type="importmap">
@@ -396,7 +420,9 @@
         "@hotwired/turbo-rails": "https://cdn.jsdelivr.net/npm/@hotwired/turbo@8.0.4/dist/turbo.es2017-esm.min.js",
         "@hotwired/stimulus": "https://cdn.jsdelivr.net/npm/@hotwired/stimulus@3.2.2/dist/stimulus.min.js",
         "codemirror": "https://esm.sh/codemirror@6.0.1",
-        "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.6.0"
+        "@codemirror/lang-sql": "https://esm.sh/@codemirror/lang-sql@6.6.0",
+        "@codemirror/state": "https://esm.sh/@codemirror/state@6.6.0",
+        "@codemirror/autocomplete": "https://esm.sh/@codemirror/autocomplete@6.20.1"
       }
     }
   </script>
@@ -406,6 +432,8 @@
     import { Application, Controller } from "@hotwired/stimulus"
     import { EditorView, basicSetup } from "codemirror"
     import { sql } from "@codemirror/lang-sql"
+    import { StateEffect } from "@codemirror/state"
+    import { autocompletion } from "@codemirror/autocomplete"
 
     const application = Application.start()
 
@@ -464,10 +492,16 @@
 
     // Editor Controller (CodeMirror)
     class EditorController extends Controller {
-      static targets = ["container"]
+      static targets = ["container", "schemaStatus"]
       
       connect() {
-        this.initializeCodeMirror()
+        this.schemaCache = null
+        
+        // 1. Initialize editor IMMEDIATELY (non-blocking)
+        this.initializeCodeMirror({})
+        
+        // 2. Load schema asynchronously in background
+        this.loadSchemaAsync()
       }
       
       disconnect() {
@@ -476,13 +510,228 @@
         }
       }
       
-      initializeCodeMirror() {
+      async loadSchemaAsync() {
+        this.showSchemaStatus('loading')
+        
         try {
-          this.view = new EditorView({
-            doc: "SELECT * FROM users LIMIT 10;",
-            extensions: [
+          const schema = await this.fetchSchemaWithTimeout()
+          
+          // Cache with TTL
+          this.schemaCache = {
+            data: schema,
+            loadedAt: Date.now(),
+            ttl: 5 * 60 * 1000  // 5 minutes
+          }
+          
+          // Reconfigure CodeMirror with loaded schema
+          this.reconfigureWithSchema(schema)
+          this.showSchemaStatus('loaded')
+          
+        } catch (error) {
+          console.warn('Schema loading failed:', error)
+          this.showSchemaStatus('error')
+          // Editor continues working without autocomplete
+        }
+      }
+      
+      async fetchSchemaWithTimeout() {
+        const controller = new AbortController()
+        const timeoutId = setTimeout(() => controller.abort(), 5000)  // 5 second timeout
+        
+        try {
+          const response = await fetch('<%= schema_tables_path.sub('tables', 'bulk') %>', {
+            signal: controller.signal,
+            headers: {
+              'Accept': 'application/json'
+            }
+          })
+          
+          if (!response.ok) {
+            throw new Error(`HTTP ${response.status}`)
+          }
+          
+          return await response.json()
+          
+        } catch (error) {
+          if (error.name === 'AbortError') {
+            throw new Error('Schema fetch timeout after 5 seconds')
+          }
+          throw error
+        } finally {
+          clearTimeout(timeoutId)
+        }
+      }
+      
+      reconfigureWithSchema(schemaData) {
+        // Store schema data for custom completions
+        this.schemaData = schemaData
+        
+        // Build CodeMirror schema format - just arrays of column names
+        const schemaConfig = {}
+        
+        schemaData.forEach(table => {
+          schemaConfig[table.name] = table.columns
+        })
+        
+        console.log('Reconfiguring with schema:', schemaConfig)
+        
+        // Helper function to extract table names from SQL query
+        // Enhanced SQL parser: extracts table names from queries
+        // Supports: SELECT, UPDATE, INSERT, DELETE, FROM, JOIN, WITH clauses
+        // Handles: Table aliases, schema-qualified names, multiple JOINs, CTEs
+        const getTablesFromQuery = (sql) => {
+          if (!sql || typeof sql !== 'string') return []
+          
+          const tables = []
+          const sqlUpper = sql.toUpperCase()
+          
+          // Match UPDATE: UPDATE table_name SET
+          const updateMatch = sqlUpper.match(/\bUPDATE\s+([\w.]+)/i)
+          if (updateMatch && updateMatch[1]) {
+            tables.push(updateMatch[1].toLowerCase())
+          }
+          
+          // Match INSERT INTO: INSERT INTO table_name
+          const insertMatch = sqlUpper.match(/\bINSERT\s+INTO\s+([\w.]+)/i)
+          if (insertMatch && insertMatch[1]) {
+            tables.push(insertMatch[1].toLowerCase())
+          }
+          
+          // Match DELETE FROM: DELETE FROM table_name
+          const deleteMatch = sqlUpper.match(/\bDELETE\s+FROM\s+([\w.]+)/i)
+          if (deleteMatch && deleteMatch[1]) {
+            tables.push(deleteMatch[1].toLowerCase())
+          }
+          
+          // Match FROM clause: FROM table_name or FROM table1, table2
+          // Enhanced: Stops at WHERE/JOIN/etc, handles aliases, excludes subqueries
+          const fromMatch = sqlUpper.match(/\bFROM\s+([\w.,\s]+?)(?:\s+WHERE|\s+JOIN|\s+LEFT|\s+RIGHT|\s+INNER|\s+OUTER|\s+CROSS|\s+GROUP|\s+ORDER|\s+LIMIT|\s+OFFSET|\s*;|\s*$)/i)
+          if (fromMatch && fromMatch[1]) {
+            // Split by comma and clean up
+            const tableList = fromMatch[1]
+              .split(',')
+              .map(t => t.trim())
+              .filter(t => t && !t.includes('(')) // Exclude subqueries
+              .map(t => {
+                // Remove AS aliases: "users u" -> "users", "users AS u" -> "users"
+                const parts = t.split(/\s+/)
+                return parts[0].toLowerCase()
+              })
+            tables.push(...tableList)
+          }
+          
+          // Match JOIN clauses: JOIN table_name
+          // Enhanced: Handles LEFT/RIGHT/INNER/OUTER/CROSS JOIN
+          const joinPattern = /(?:LEFT\s+|RIGHT\s+|INNER\s+|OUTER\s+|CROSS\s+)?JOIN\s+([\w.]+)/gi
+          const joinMatches = sql.matchAll(joinPattern)
+          for (const match of joinMatches) {
+            if (match[1] && !match[1].includes('(')) {
+              tables.push(match[1].toLowerCase())
+            }
+          }
+          
+          // Match WITH (CTE) clause table names: WITH table_name AS (...)
+          const ctePattern = /\bWITH\s+([\w.]+)\s+AS/gi
+          const cteMatches = sql.matchAll(ctePattern)
+          for (const match of cteMatches) {
+            if (match[1]) {
+              tables.push(match[1].toLowerCase())
+            }
+          }
+          
+          // Remove duplicates and filter out empty/invalid names
+          return [...new Set(tables)].filter(t => t && t.length > 0 && /^[\w.]+$/.test(t))
+        }
+        
+        // Create custom completion source for columns
+        const customCompletions = (context) => {
+          const word = context.matchBefore(/\w*/)
+          if (!word || (word.from == word.to && !context.explicit)) return null
+          
+          // Get the full SQL text before cursor
+          const textBeforeCursor = context.state.doc.sliceString(0, context.pos)
+          const textBeforeCursorUpper = textBeforeCursor.toUpperCase()
+          
+          // Extract tables from the query
+          const tablesInQuery = getTablesFromQuery(textBeforeCursor)
+          
+          // Check if we're in a SET clause (UPDATE ... SET)
+          const inSetClause = /\bUPDATE\s+\w+\s+SET\s/i.test(textBeforeCursor)
+          
+          // Check if we're in INSERT column list
+          const inInsertColumns = /\bINSERT\s+INTO\s+\w+\s*\(/i.test(textBeforeCursor) && 
+                                  !textBeforeCursorUpper.includes('VALUES')
+          
+          // Build completions
+          const options = []
+          
+          console.log('Autocomplete context:', {
+            tablesInQuery,
+            inSetClause,
+            inInsertColumns,
+            textSample: textBeforeCursor.slice(-50)
+          })
+          
+          // If no tables found yet, suggest table names only
+          if (tablesInQuery.length === 0) {
+            schemaData.forEach(table => {
+              options.push({
+                label: table.name,
+                type: "type",
+                info: `Table (${table.columns.length} columns)`
+              })
+            })
+          } else {
+            // Add columns only from tables that are referenced
+            schemaData.forEach(table => {
+              if (tablesInQuery.includes(table.name.toLowerCase())) {
+                table.columns.forEach(col => {
+                  options.push({
+                    label: col,
+                    type: "property",
+                    detail: table.name,
+                    info: `Column from ${table.name}`
+                  })
+                })
+              }
+            })
+            
+            // Only add table names if NOT in SET or INSERT column list
+            // (table names are useful for JOIN but not in SET/INSERT contexts)
+            if (!inSetClause && !inInsertColumns) {
+              schemaData.forEach(table => {
+                options.push({
+                  label: table.name,
+                  type: "type",
+                  info: `Table (${table.columns.length} columns)`
+                })
+              })
+            }
+          }
+          
+          return {
+            from: word.from,
+            options: options,
+            validFor: /^\w*$/
+          }
+        }
+        
+        // Create new SQL extension with schema
+        const sqlExt = sql({ 
+          schema: schemaConfig,
+          upperCaseKeywords: false
+        })
+        
+        // Reconfigure the view with both SQL and custom completions
+        try {
+          this.view.dispatch({
+            effects: StateEffect.reconfigure.of([
               basicSetup,
-              sql(),
+              sqlExt,
+              autocompletion({
+                override: [customCompletions],
+                activateOnTyping: true
+              }),
               EditorView.lineWrapping,
               EditorView.theme({
                 "&": {
@@ -498,6 +747,66 @@
                 },
                 "&.cm-focused": {
                   outline: "none"
+                },
+                ".cm-tooltip-autocomplete": {
+                  zIndex: 1000
+                }
+              })
+            ])
+          })
+        } catch (error) {
+          console.error('Failed to reconfigure CodeMirror with schema:', error)
+        }
+      }
+      
+      showSchemaStatus(status) {
+        if (!this.hasSchemaStatusTarget) return
+        
+        const statusElement = this.schemaStatusTarget
+        statusElement.className = `schema-status ${status}`
+        
+        switch(status) {
+          case 'loading':
+            statusElement.textContent = '⟳ Loading schema...'
+            statusElement.style.display = 'inline-block'
+            break
+          case 'loaded':
+            statusElement.textContent = '✓ Schema loaded'
+            statusElement.style.display = 'inline-block'
+            setTimeout(() => statusElement.style.display = 'none', 3000)
+            break
+          case 'error':
+            statusElement.textContent = '⚠ Schema unavailable'
+            statusElement.style.display = 'inline-block'
+            break
+        }
+      }
+      
+      initializeCodeMirror(schemaConfig = {}) {
+        try {
+          this.view = new EditorView({
+            doc: "SELECT * FROM users LIMIT 10;",
+            extensions: [
+              basicSetup,
+              sql({ schema: schemaConfig }),
+              EditorView.lineWrapping,
+              EditorView.theme({
+                "&": {
+                  fontSize: "14px"
+                },
+                ".cm-content": {
+                  fontFamily: "'Monaco', 'Menlo', 'Courier New', monospace",
+                  minHeight: "200px",
+                  padding: "12px"
+                },
+                ".cm-scroller": {
+                  overflow: "auto"
+                },
+                "&.cm-focused": {
+                  outline: "none"
+                },
+                ".cm-tooltip-autocomplete": {
+                  zIndex: 1000
                 }
               })
             ],
@@ -511,6 +820,14 @@
       }
       
       getSql() {
+        const selection = this.view.state.selection.main
+        
+        // If there's a selection (not just a cursor), use it
+        if (selection.from !== selection.to) {
+          return this.view.state.sliceDoc(selection.from, selection.to)
+        }
+        
+        // Otherwise, return the full document
         return this.view.state.doc.toString()
       }
       
@@ -992,9 +1309,10 @@
 
     <div class="main-layout">
       <!-- Editor Section -->
-      <div class="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor_section">
+      <div class="editor-section" data-controller="editor collapsible" data-collapsible-key-value="editor_section" data-editor-schema-path-value="<%= schema_tables_path %>">
         <div class="editor-header">
           <h3>SQL Editor</h3>
+          <div data-editor-target="schemaStatus" class="schema-status" style="display: none;"></div>
           <div class="button-group">
             <button class="btn-secondary" data-action="click->editor#clearEditor" type="button">Clear</button>
             <button class="btn-secondary" data-action="click->editor#explainQuery" type="button">⚡ Explain</button>

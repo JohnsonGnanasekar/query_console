@@ -16,7 +16,10 @@ module QueryConsole
                   :schema_table_denylist,
                   :schema_allowlist,
                   :enable_syntax_highlighting,
-                  :enable_autocomplete
+                  :enable_autocomplete,
+                  :autocomplete_max_tables,
+                  :autocomplete_max_columns_per_table,
+                  :autocomplete_cache_ttl_seconds
 
     def initialize
       @enabled_environments = ["development"]
@@ -42,6 +45,32 @@ module QueryConsole
       @schema_allowlist = [] # empty means all tables allowed (except denylist)
       @enable_syntax_highlighting = true
       @enable_autocomplete = true
+      @autocomplete_max_tables = 100
+      @autocomplete_max_columns_per_table = 100
+      @autocomplete_cache_ttl_seconds = 300 # 5 minutes
+    end
+
+    # Validation: Autocomplete requires schema_explorer to be enabled
+    def autocomplete_enabled
+      enable_autocomplete && schema_explorer
+    end
+
+    # Setter with validation for autocomplete_max_tables
+    def autocomplete_max_tables=(value)
+      raise ArgumentError, "autocomplete_max_tables must be between 1 and 1000" unless value.is_a?(Integer) && (1..1000).include?(value)
+      @autocomplete_max_tables = value
+    end
+
+    # Setter with validation for autocomplete_max_columns_per_table
+    def autocomplete_max_columns_per_table=(value)
+      raise ArgumentError, "autocomplete_max_columns_per_table must be between 1 and 500" unless value.is_a?(Integer) && (1..500).include?(value)
+      @autocomplete_max_columns_per_table = value
+    end
+
+    # Setter with validation for autocomplete_cache_ttl_seconds
+    def autocomplete_cache_ttl_seconds=(value)
+      raise ArgumentError, "autocomplete_cache_ttl_seconds must be positive" unless value.is_a?(Integer) && value > 0
+      @autocomplete_cache_ttl_seconds = value
     end
   end
 

@@ -45,7 +45,7 @@ module QueryConsole
 
       # Step 3: Execute with timeout
       begin
-        result = execute_with_timeout(explain_sql)
+        result, _ = execute_with_timeout(explain_sql, false)
         execution_time = ((Time.now - start_time) * 1000).round(2)
 
         # Format the result as plain text
@@ -95,37 +95,40 @@ module QueryConsole
       end
     end
 
-    def execute_with_timeout(sql)
+    def execute_with_timeout(sql, is_dml = false)
       case @config.timeout_strategy
       when :database
-        execute_with_database_timeout(sql)
+        execute_with_database_timeout(sql, is_dml)
       when :ruby
-        execute_with_ruby_timeout(sql)
+        execute_with_ruby_timeout(sql, is_dml)
       else
         # Auto-detect: use database timeout for PostgreSQL, Ruby timeout otherwise
         if postgresql_connection?
-          execute_with_database_timeout(sql)
+          execute_with_database_timeout(sql, is_dml)
         else
-          execute_with_ruby_timeout(sql)
+          execute_with_ruby_timeout(sql, is_dml)
         end
       end
     end
 
     # Database-level timeout (PostgreSQL only)
     # Safer: database cancels the query cleanly, no orphan processes
-    def execute_with_database_timeout(sql)
+    def execute_with_database_timeout(sql, is_dml = false)
       conn = ActiveRecord::Base.connection
       
       unless postgresql_connection?
         Rails.logger.warn("[QueryConsole] Database timeout strategy requires PostgreSQL, falling back to Ruby timeout")
-        return execute_with_ruby_timeout(sql)
+        return execute_with_ruby_timeout(sql, is_dml)
       end
 
-      conn.transaction do
+      result = conn.transaction do
         # SET LOCAL scopes the timeout to this transaction only
         conn.execute("SET LOCAL statement_timeout = '#{@config.timeout_ms}'")
         conn.exec_query(sql)
       end
+      
+      # EXPLAIN queries never have rows_affected
+      [result, nil]
     rescue ActiveRecord::StatementInvalid => e
       if e.message.include?("canceling statement due to statement timeout") ||
          e.message.include?("query_canceled")
@@ -138,12 +141,15 @@ module QueryConsole
     # Ruby-level timeout (fallback for non-PostgreSQL databases)
     # Warning: The database query continues running as an orphan process
     # even after Ruby times out. Can cause resource exhaustion.
-    def execute_with_ruby_timeout(sql)
+    def execute_with_ruby_timeout(sql, is_dml = false)
       timeout_seconds = @config.timeout_ms / 1000.0
       
-      Timeout.timeout(timeout_seconds) do
+      result = Timeout.timeout(timeout_seconds) do
         ActiveRecord::Base.connection.exec_query(sql)
       end
+      
+      # EXPLAIN queries never have rows_affected
+      [result, nil]
     end
 
     def postgresql_connection?
