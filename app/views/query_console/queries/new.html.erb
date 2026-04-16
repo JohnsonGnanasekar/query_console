@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Query Console v0.2.0</title>
+  <title>Query Console v0.3.1</title>
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <%= csrf_meta_tags %>
   <meta name="turbo-refresh-method" content="morph">
@@ -1292,7 +1292,7 @@
   <div class="container">
     <!-- Banner -->
     <div class="banner" data-controller="collapsible" data-collapsible-key-value="banner">
-      <h2>🔍 <% if QueryConsole.configuration.enable_dml %>SQL Query Console<% else %>Read-Only SQL Query Console<% end %> <small>v0.2.0</small></h2>
+      <h2>🔍 <% if QueryConsole.configuration.enable_dml %>SQL Query Console<% else %>Read-Only SQL Query Console<% end %> <small>v0.3.1</small></h2>
       <div class="banner-content">
         <p>
           <strong>Security:</strong> 
@@ -1302,7 +1302,7 @@
             Read-only SELECT & WITH queries only. All queries are logged.
           <% end %>
         </p>
-        <p><strong>New in v0.2.0:</strong> EXPLAIN query plans, Interactive Schema Explorer with quick insert buttons, Saved Queries with tags, import/export, and localStorage-based Query History!</p>
+        <p><strong>New in v0.3.1:</strong> Smart SQL Autocomplete with context-aware table and column suggestions! Also includes DML row count fixes and query selection execution.</p>
       </div>
       <button class="section-toggle" data-action="click->collapsible#toggle" type="button">▼</button>
     </div>
